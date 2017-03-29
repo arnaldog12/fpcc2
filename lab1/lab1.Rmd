@@ -1,35 +1,24 @@
 ---
-title: "lab1"
+title: "Lab 1 - Minhas perguntas sobre deputados"
 author: "Arnaldo Gualberto"
-date: "27 de março de 2017"
-output: 
-  html_document: 
-    smart: false
+date: "29 de março de 2017"
+output:
+  html_document:
+    smart: no
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-No primeiro documento
+No primeiro lab da disciplina *Fundamento em Ciência da Computação II*, o objetivo é analisar dados da câmara dos deputados para se familiarizar com as ferramentas de código que serão utilizadas no restante do curso. Em especial, deve utilizar essas ferramentas para responder as seguintes perguntas:
 
-Sugiro que você escolha alguns tipos de gastos, e você pode também querer restringir a análise a algum subconjunto de deputados
+__a. Em que tipo de despesas os parlamentares gastam mais recursos de sua cota?__
 
-Perguntas:
-a. Em que tipo de despesas os parlamentares gastam mais recursos de sua cota?
-b. Que tipos de despesa tem valores que mais variam quando comparamos os deputados? 
+__b. Que tipos de despesa tem valores que mais variam quando comparamos os deputados?__ 
 
-E ainda:
-- Crie um panorama dos dados mostrando como as variáveis variam isoladamente e em conjunto
-- Verifique qual a distribuição dos valores das variáveis, sua centralidade, extremos, concentração e simetria
-- Procure e comente caso haja algo supreendente ou estranho nos dados. Caso necessário, lide com esses valores/comportamentos surpreendentes e comente sua decisão
-
-Critérios:
-- Há uma resposta correta e bem embasada com dados para Em que tipo de despesas os parlamentares gastam mais?
-- Resposta correta e bem embasada para que tipos de despesa tem valores que mais variam
-- Há uma análise descritiva das variáveis utilizadas na análise
-- Escrita clara e que explica o necessário para entendermos o relatório
-- O relatório está em RMarkdown mostrando o código R
+O restante desse documento apresenta os passos necessários para respostas dessas perguntas, além de outras análises que considerei importante.
 
 ## 0. Includes e Settings
 ```{r}
@@ -37,6 +26,7 @@ library(dplyr, warn.conflicts = F)
 library(readr)
 library(ggplot2)
 library(stringr)
+library(knitr)
 
 # Coloca todos os titulos dos gráficos centralizados
 theme_update(plot.title = element_text(hjust=0.5))
@@ -65,7 +55,7 @@ Primeiramente, vou analisar os dados na forma bruta em busca de valores estranho
 Analisando os resultados, vou efetuar as seguintes transformações nos dados:
 
 1. Converter os nomes dos deputados e as descrições de despesas para CamelCase;
-2. Converter as despesas "Emissão de Bilhete Aéreo" para "PASSAGENS AÉREAS", já que representam a mesma coisa.
+2. Converter as despesas *Emissão de Bilhete Aéreo* para *PASSAGENS AÉREAS*, já que representam a mesma coisa.
 3. Remover os valores liquidos negativos - que representam reembolso - para não atrapalhar nos cálculos sobre os valores.
 
 ```{r}
@@ -88,10 +78,10 @@ min(dados_pb$valor_liq); mean(dados_pb$valor_liq); median(dados_pb$valor_liq); m
 Achei estranho o valor mínimo líquido ser de R$0,08. O que será que é?
 
 ```{r}
-filter(dados_pb, valor_liq == min(valor_liq))
+kable(filter(dados_pb, valor_liq == min(valor_liq)))
 ```
 
-Quero observar agora, a distribuição dessa variável:
+A princípio, nada estranho. Quero observar agora, a distribuição dessa variável:
 ```{r}
 dados_pb %>%
   ggplot(aes(x = valor_liq)) + 
@@ -100,9 +90,10 @@ dados_pb %>%
   geom_vline(xintercept = median(dados_pb$valor_liq), colour = "yellow") +
   ggtitle("Distribuição dos valores líquidos") +
   xlab("Valor Líquido") +
-  ylab("Qtde")
+  ylab("Quantidade de Registros")
 ```
-Pelo gráfico acima, percebe-se que a maior parte dos gastos dos deputados são de baixo-valor. Além disso, é possível ver que a média (linha verde) não é tão distante da mediana (linha amarela) dos gastos.
+
+Pelo gráfico acima, percebe-se que a maior parte dos gastos dos deputados são de baixo valor, apesar de elas serem bem frequentes. Além disso, é possível ver que __a distribuição não é simétrica__ e que a média (linha verde) não é tão distante da mediana (linha amarela) dos gastos.
 
 Como o gráfico acima se parece com uma curva logarítimica, a título de curiosidade, vou plotar o mesmo gráfico em escala logarítimica:
 ```{r}
@@ -114,19 +105,23 @@ dados_pb %>%
   scale_x_log10() +
   ggtitle("Distribuição dos valores líquidos em scala logarítimica") +
   xlab("Valor Líquido (log)") +
-  ylab("Qtde")
+  ylab("Quantidade de Registros")
 ```
 
-Antes de finalizar essa seção, quero observar também a distribuição das descrições das despesas:
+Como eu esperava, agora a curva aproxima-se de uma distribuição normal. Antes de finalizar essa seção, quero observar também a distribuição das descrições das despesas:
 
 ```{r}
 dados_pb %>%
   group_by(descricao) %>%
   ggplot(aes(x = descricao)) + 
   geom_bar() +
+  ggtitle("Distribuição das despesas") +
+  xlab("Tipo de Despesa") +
+  ylab("Quantidade de Registros") +
   coord_flip()
 ```
-Logo de cara, é fácil perceber que "Passagens Aéreas" e "Combustíveis e Lubrificantes" são as despesas mais comuns dos deputados.
+
+Logo de cara, é fácil perceber que *Passagens Aéreas* e *Combustíveis e Lubrificantes* são as despesas mais comuns dos deputados.
 
 ### 2.2 Visualizações
 Primeiramente, quero saber quantas depesas cada partido tem na tabela:
@@ -136,12 +131,12 @@ dados_pb %>%
   ggplot(aes(x = partido, fill=partido)) +
   geom_bar() +
   ggtitle("Quantidade de despesas por partido") +
-  ylab("Quantidade de Despesas") +
+  ylab("Quantidade de Registros") +
   xlab("Partido") +
   coord_flip()
 ```
 
-A principio, **o PMDB é o partido que mais gasta na Paraíba**. Porém, temos de verificar primeiro a quantidade de deputados por partido no estado:
+A principio, **o PMDB é o partido que mais tem registros de gastos na Paraíba, com mais de 2000 despesas**. Porém, temos de verificar primeiro a quantidade de deputados por partido no estado:
 
 ```{r}
 dados_sum <- dados_pb %>% 
@@ -152,13 +147,15 @@ dados_sum %>%
   ggplot(aes(x = partido, y = qtde, fill=partido)) +
   geom_bar(stat = "identity") +
   ggtitle("Quantidade de deputados por partido") +
+  xlab("Partido") +
+  ylab("Quantidade de deputados") +
   coord_flip()
   
 ```
 
 Pode-se ver que **apenas o PMDB e o PSDB são os únicos partidos com mais de um representante**. Então, daqui para frente, vou concentrar minhas análises por deputado, já que em quase todos os casos o valor gasto por um deputado será igual ao do partido.
 
-Agora, quero saber quanto cada Deputado gastou:
+Agora, quero saber quanto cada deputado gastou:
 
 ```{r}
 dados_sum <- dados_pb %>%
@@ -172,42 +169,42 @@ dados_sum %>%
   geom_hline(yintercept = mean(dados_sum$total)) +
   ggtitle("Valor Liquido Total gasto por deputado") + 
   xlab("Deputado") +
-  ylab("Total") +
+  ylab("Valor líquido total") +
   coord_flip()
 ```
 
-Pelo gráfico acima, pode-se ver que **Aguinaldo Ribeiro é o deputado que mais gasta, seguido por Manoel Junior e Rômulo Gouveia**. Além disso, **10 dos 16 deputados gastam mais que a média (R$ 472.415,20)**. **Major Fábio e Ruy Carneiro são os deputados que menos gastam**.
+Pelo gráfico acima, pode-se ver que **Aguinaldo Ribeiro é o deputado que mais gasta recursos, seguido por Manoel Junior e Rômulo Gouveia**. Além disso, **10 dos 16 deputados gastam mais que a média (R$ 472.415,20)**. **Major Fábio e Ruy Carneiro são os deputados que menos gastam**.
 
 Vamos analisar o maior gasto dos deputados que mais e menos gastam, respectivamente:
 
 ```{r}
-dados_pb %>% 
+kable(dados_pb %>% 
   filter(nome == "Aguinaldo Ribeiro") %>% 
-  filter(valor_liq == max(valor_liq))
+  filter(valor_liq == max(valor_liq)))
 ```
 
 ```{r}
-dados_pb %>% 
+kable(dados_pb %>% 
   filter(nome == "Major Fábio") %>% 
-  filter(valor_liq == max(valor_liq))
+  filter(valor_liq == max(valor_liq)))
 ```
 
-Pelos dados acima, podemos ver que **o deputado Rômulo Gouveia chegou a gastar R$ 54.000,00 com "Divulgação da Atividade Parlamentar"**, enquanto **o deputado Major Fábio chegou a pagar R$ 2.740,98 com "Passagens Aéreas"**.
+Vemos, pelos dados acima, que __o deputado Rômulo Gouveia chegou a gastar R$ 54.000,00 com *Divulgação da Atividade Parlamentar*__, enquanto __o deputado Major Fábio chegou a pagar R$ 2.740,98 com *Passagens Aéreas*__.
 
 Agora eu fiquei curioso: **Qual foi o maior gasto dentre todos os deputados? De quem foi esse gasto?**
 
-```{r}
-dados_pb %>%
-  filter(valor_liq == max(valor_liq))
+```{r, fig.width=16}
+kable(dados_pb %>%
+  filter(valor_liq == max(valor_liq)))
 ```
 
-E a resposta é: **Benjamin Maranhão, que gastou R$ 64.000,00 com ""Divulgação da Atividade Parlamentar** (que desperdício!). Se compararmos com os dados do último gráfico, podemos perceber que **só esse gasto representa mais de 10% de todo o dinheiro que ele gastou**.
+E a resposta é: __Benjamin Maranhão, que gastou R$ 64.000,00 com *Divulgação da Atividade Parlamentar*__ (que desperdício!). Se compararmos com os dados do último gráfico, podemos perceber que **só esse gasto representa mais de 10% de todo os recursos que ele gastou**.
 
 ## 3. Respostas as questões
 
 Agora que eu fiz as análises preliminares, vou responder as questões do exercício:
 
-### a. Em que tipo de despesas os parlamentares gastam mais recursos de sua cota?
+#### a. Em que tipo de despesas os parlamentares gastam mais recursos de sua cota?
 Para responder essa pergunta, vou simplesmente agrupar os dados por tipo de despesa e sumarizar os dados pela soma do valor líquido total.
 
 ```{r}
@@ -225,7 +222,7 @@ dados_sum %>%
   coord_flip()
 ```
 
-É fácil perceber pelo gráfico que **a ""Divulgação da atividade parlamentar" é o tipo de despesa que os deputados mais gastam recursos da cota**, seguido por "Passagens Aéreas", que é praticamente metade desse valor.
+É fácil perceber pelo gráfico que **a *Divulgação da atividade parlamentar* é o tipo de despesa que os deputados mais gastam recursos da cota**, seguido por *Passagens Aéreas*, que é praticamente metade desse valor.
 
 Fiquei curioso para saber como seria esse gráfico por deputado.
 
@@ -244,7 +241,7 @@ dados_sum %>%
   coord_flip()
 ```
 
-Apesar de não ser possível ver o gráfico para todos os deputados claramente, ainda assim é possível ver que o gasto com "Divulgação da Atividade Parlamentar" é a despesa mais presente na maioria dos deputados.
+Apesar de não ser possível ver o gráfico para todos os deputados claramente, ainda assim é possível ver que __o gasto com *Divulgação da Atividade Parlamentar* é a despesa mais presente na maioria dos deputados__.
 
 Para tornar fácil a visualização para todos os deputados, vou plotar o gráfico acima com as proporções de cada tipo de despesa para cada deputado:
 
@@ -262,7 +259,7 @@ dados_sum %>%
   coord_flip()
 ```
 
-Agora é possível observar que apenas os deputados Luiz Couto, Ruy Carneiro, Nilda Gondim e Major Fábio gastam mais recursos proporcionalmente com outros tipos de despesas que em relação a "Divulgação da Atividade Parlamentar".
+Agora é possível observar que __apenas os deputados Luiz Couto, Ruy Carneiro, Nilda Gondim e Major Fábio gastam mais recursos proporcionalmente com outros tipos de despesas que em relação a *Divulgação da Atividade Parlamentar*__.
 
 O gráfico abaixo plota todas as despesas dos deputados distribuidas pelos valores e separadas por tipo.
 
@@ -274,22 +271,25 @@ dados_sum %>%
   ggplot(aes(x=nome, y=valor_liq, colour=descricao)) +
   #geom_point(alpha=0.5) +
   geom_point(alpha=0.5, position = position_jitter(width = 0.3)) +
+  ggtitle("Distribuição dos tipos de despesas por valor líquido e deputado") +
+  xlab("Deputado") +
+  ylab("Valor Líquido") +
   coord_flip()
 ```
 
-É possível ver, pelo gráfico acima, que as passagens aéreas são o tipo mais comum de gastos de praticamente todos os deputados. Além disso, podemos ver também que alguns poucos deputados tem gasto maiores que R$20.000,00. Fiquei curioso para saber quais são esses gastos:
+É possível ver, pelo gráfico acima, novamente, que __as passagens aéreas são o tipo mais comum de gastos de praticamente todos os deputados__. Além disso, podemos ver também que __alguns poucos deputados tiveram gasto maiores que R$20.000,00__. Fiquei curioso para saber quais são esses gastos:
 
 ```{r}
-filter(dados_pb, valor_liq >= 20000)
+kable(filter(dados_pb, valor_liq >= 20000))
 ```
 
-A tabela acima mostra que, como já vimos anteriormente, grandes quantias de dinheiro são gastas com "Divulgação da Atividade Parlamentar". Porém, há dois dados interessantes: **O deputado Ruy Carneiro gastou R$25.200,00 com "Consultorias, Pesquisas e Trabalhos Técnicos"**; **O deputado Hugo Mota fretou/alugou uma Aeronave por R$24.150,00!!** Isso dava para comprar pelo menos 10 passagens de ida-volta de última hora! (considerando cada passagem +R$2.000,00).
+A tabela acima mostra que, como já vimos anteriormente, grandes quantias de dinheiro são gastas com *Divulgação da Atividade Parlamentar*. Porém, há dois dados interessantes: __O deputado Ruy Carneiro gastou R$25.200,00 com *Consultorias, Pesquisas e Trabalhos Técnicos*__; __O deputado Hugo Mota fretou/alugou uma Aeronave por R$24.150,00!!__.
 
-De acordo com o [site da camara](http://www.camara.leg.br/cota-parlamentar/index.jsp), esse gasto do deputado Ruy Carneiro foi referente um [censo estatístico](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2276/2015/5580561.pdf). Já Hugo Mota, fez 9 viagens de avião fretado num período de 17 dias entre João Pessoa-PB, Recife-PE, Guarabira-PB, e Maceió-AL (ver [Recibo](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2271/2015/5787224.pdf)).
+De acordo com o [site da camara](http://www.camara.leg.br/cota-parlamentar/index.jsp), esse gasto do deputado Ruy Carneiro foi referente um [censo estatístico](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2276/2015/5580561.pdf) na cidade de Bayeux. Já __Hugo Mota, fez 9 viagens de avião fretado num período de 17 dias__ entre João Pessoa-PB, Recife-PE, Guarabira-PB, e Maceió-AL (ver [Recibo](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2271/2015/5787224.pdf)).
 
 Outra forma de visualizar o gráfico acima, seria gerar um hetmap mostrando a quantidade de registros por tipo de despesa para cada deputado:
 
-```{r, fig.width=12}
+```{r, fig.width=10}
 dados_sum <- dados_pb %>%
   group_by(nome, descricao) %>%
   summarise(count = n())
@@ -305,12 +305,11 @@ dados_sum %>%
   xlab("Deputado") +
   ylab("Tipo de Despesa") +
   ggtitle("Quantidade de despesas por tipo e deputado")
-  #coord_equal()
 ```
 
-Analisando o gráfico acima, pode-se observar novamente que **"Passagens Aéreas" são os gastos mais comuns dos deputados, seguido por "Combustíveis e Lubrificantes" e "Serviços Postais"**. **O deputado Wellington Roberto é o deputado que mais comprou passagens aéreas (472)**. **Aguinaldo Ribeiro, por sua vez, teve 448 despesas com "Combustíveis e Lubrificantes" (448), quase o dobro do segundo deputado nessa mesma categoria (Benjamin Maranhão com 270 despesas)**. Também é possível ver que **"Assinatura de Publicações" e "Serviço de Segurança Prestado por Empresas Especializadas" são os tipos de despesas menos utilizados pelos deputados.
+Analisando o gráfico acima, pode-se observar novamente que __*Passagens Aéreas* são os gastos mais comuns dos deputados, seguido por *Combustíveis e Lubrificantes* e *Serviços Postais*__. __O deputado Wellington Roberto é o deputado que mais comprou passagens aéreas (472)__. __Aguinaldo Ribeiro, por sua vez, teve 448 despesas com *Combustíveis e Lubrificantes* (448)__, quase o dobro do segundo deputado nessa mesma categoria (Benjamin Maranhão com 270 despesas). __Também é possível ver que *Assinatura de Publicações* e *Serviço de Segurança Prestado por Empresas Especializadas*__ são os tipos de despesas menos utilizados pelos deputados.
 
-### b. Que tipos de despesa tem valores que mais variam quando comparamos os deputados? 
+#### b. Que tipos de despesa tem valores que mais variam quando comparamos os deputados? 
 Vamos agora analisar os tipos de despesa que tem valores que mais variam ao comparar os deputados.
 
 Para responder essa pergunta, vou utilizar um gráfico do tipo *error bar* mostrando a variação de entre os valores mínimo e máximo para cada tipo de despesa:
@@ -330,9 +329,11 @@ dados_sum %>%
   coord_flip()
 ```
 
-Logo, pelo gráfico acima, a resposta é: **A "Divulgação da Atividade Parlamentar" é o tipo de despesa que mais varia entre todos os deputados (entre 0 e R$64.000,00, como visto onde imprimi o maior gasto entre todos os deputados), seguido por "Consultorias, Pesquisas e Trabalhos Técnicos" e "Locação ou Fretamento de Aeronaves"**.
+Logo, pelo gráfico acima, a resposta é: __a *Divulgação da Atividade Parlamentar* é o tipo de despesa que mais varia entre todos os deputados (entre 0 e R$64.000,00, como visto onde imprimi o maior gasto entre todos os deputados), seguido por *Consultorias, Pesquisas e Trabalhos Técnicos* e *Locação ou Fretamento de Aeronaves*__.
 
-```{r, fig.height=10}
+Finalmente, resolvi plotar o mesmo gráfico separando os tipos de despesa para cada Deputado:
+
+```{r, fig.width=12}
 # dados_sum <- dados_pb %>%
 #   group_by(nome, descricao) %>%
 #   summarise(max = max(valor_liq), min = min(valor_liq)) %>%
@@ -353,6 +354,42 @@ dados_sum %>%
   ggplot(aes(x = nome, y = descricao)) +
   geom_point(aes(size = variacao, colour = variacao)) +
   scale_colour_gradient(low = "orange", high = "red") +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab("Deputado") +
+  ylab("Tipo de despesa")
 ```
 
+O gráfico acima mostra que __houve principalmente uma variação muito grande nas despesas de *Divulgação da Atividade Parlamentar* para 3 deputados em especial: Aguinaldo Ribeiro, Benjamin Maranhão e Wellington Roberto__. Vamos analisar então os valores mínimo e máximo desse tipo de despesa para cada um desses deputados:
+
+```{r}
+kable(dados_pb %>%
+  filter(nome == "Aguinaldo Ribeiro" & descricao == "Divulgação Da Atividade Parlamentar.") %>%
+  filter(valor_liq == min(valor_liq)))
+```
+
+```{r}
+kable(dados_pb %>%
+  group_by(nome, descricao) %>%
+  filter(nome == "Aguinaldo Ribeiro" & descricao == "Divulgação Da Atividade Parlamentar.") %>%
+  summarise(min = min(valor_liq), max = max(valor_liq)))
+```
+
+```{r}
+kable(dados_pb %>%
+  group_by(nome, descricao) %>%
+  filter(nome == "Benjamin Maranhão" & descricao == "Divulgação Da Atividade Parlamentar.") %>%
+  summarise(min = min(valor_liq), max = max(valor_liq)))
+```
+
+```{r}
+kable(dados_pb %>%
+  group_by(nome, descricao) %>%
+  filter(nome == "Wellington Roberto" & descricao == "Divulgação Da Atividade Parlamentar.") %>%
+  summarise(min = min(valor_liq), max = max(valor_liq)))
+```
+
+Como esperado, esses deputados apresentaram uma variação muito grande para uma mesma despesa, principalmente Benjamim Maranhão.
+
+# 4. Conclusões
+
+Pelas análises realizadas nesse trabalho, pode-se concluir que os deputados paraibanos gastam uma quantia considerável de recursos públicos com *Divulgação da Atividade Parlamentar* e *Passagens Aéreas*, sendo, em alguns casos, exagerados e de certa forma displicentes. Apesar dos dados estarem restritamente voltados aos gastos com certas despesas - não considerando outros fatores -, a impressão que fica é que alguns deputados se preocupam mais em viajar e se reeleger. A média de recursos gastos por um deputado durante o período dessa análise (+R$470.000,00) é de certa forma revoltante, visto que o retorno à população não é proporcional. Gasta-se muito e melhora-se pouco.
