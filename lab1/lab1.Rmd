@@ -283,7 +283,7 @@ Logo, pelo gráfico acima, a resposta é: **A "Divulgação da Atividade Parlame
 #   group_by(nome, descricao) %>%
 #   summarise(max = max(valor_liq), min = min(valor_liq)) %>%
 #   arrange(max-min)
-
+#
 # dados_sum %>%
 #   ggplot(aes(x = reorder(descricao, max-min))) + 
 #   geom_errorbar(aes(ymax = max, ymin = min)) +
@@ -295,15 +295,10 @@ dados_sum <- dados_pb %>%
   group_by(nome, descricao) %>%
   summarise(variacao = (max(valor_liq) - min(valor_liq)))
 
-dados_sum %>% 
-  ggplot(aes(x = nome, y = descricao, fill=variacao)) +
-  geom_tile(colour = "white", size=0.1) +
-  geom_text(aes(label = variacao)) +
-  scale_fill_continuous(na.value = "white", low="white", high="red") +
-  theme(panel.background = element_rect(fill = "white", colour = "white")) +
-  theme(axis.text.x = element_text(angle = 90)) +
-  xlab("Deputado") +
-  ylab("Tipo de Despesa") +
-  ggtitle("Quantidade de despesas por tipo e deputado")
+dados_sum %>%
+  ggplot(aes(x = nome, y = descricao)) +
+  geom_point(aes(size = variacao, colour = variacao)) +
+  scale_colour_gradient(low = "orange", high = "red") +
+  theme(axis.text.x = element_text(angle = 90))
 ```
 
