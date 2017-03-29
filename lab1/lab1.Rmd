@@ -283,7 +283,9 @@ dados_sum %>%
 filter(dados_pb, valor_liq >= 20000)
 ```
 
-A tabela acima mostra que, como já vimos anteriormente, grandes quantias de dinheiro são gastas com "Divulgação da Atividade Parlamentar". Porém, há dois dados interessantes: **O deputado Ruy Carneiro gastou R$25.200,00 com "Consultorias, Pesquisas e Trabalhos Técnicos"** (que trabalho foi esse? [pesquisar nas notas fiscais]); **O deputado Hugo Mota fretou/alugou uma Aeronave por R$24.150,00!!** Isso dava para comprar pelo menos 10 passagens de ida-volta de última hora! (considerando cada passagem +R$2.000,00).
+A tabela acima mostra que, como já vimos anteriormente, grandes quantias de dinheiro são gastas com "Divulgação da Atividade Parlamentar". Porém, há dois dados interessantes: **O deputado Ruy Carneiro gastou R$25.200,00 com "Consultorias, Pesquisas e Trabalhos Técnicos"**; **O deputado Hugo Mota fretou/alugou uma Aeronave por R$24.150,00!!** Isso dava para comprar pelo menos 10 passagens de ida-volta de última hora! (considerando cada passagem +R$2.000,00).
+
+De acordo com o [site da camara](http://www.camara.leg.br/cota-parlamentar/index.jsp), esse gasto do deputado Ruy Carneiro foi referente um [censo estatístico](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2276/2015/5580561.pdf). Já Hugo Mota, fez 9 viagens de avião fretado num período de 17 dias entre João Pessoa-PB, Recife-PE, Guarabira-PB, e Maceió-AL (ver [Recibo](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2271/2015/5787224.pdf)).
 
 Outra forma de visualizar o gráfico acima, seria gerar um hetmap mostrando a quantidade de registros por tipo de despesa para cada deputado:
 
