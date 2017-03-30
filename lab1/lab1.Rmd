@@ -54,9 +54,9 @@ Primeiramente, vou analisar os dados na forma bruta em busca de valores estranho
 
 Analisando os resultados, vou efetuar as seguintes transformações nos dados:
 
-1. Converter os nomes dos deputados e as descrições de despesas para CamelCase;
+1. Converter os nomes dos deputados e as descrições de despesas para *CamelCase*;
 2. Converter as despesas *Emissão de Bilhete Aéreo* para *PASSAGENS AÉREAS*, já que representam a mesma coisa.
-3. Remover os valores liquidos negativos - que representam reembolso - para não atrapalhar nos cálculos sobre os valores.
+3. Remover os valores líquidos negativos - que representam reembolso - para não atrapalhar nos cálculos sobre os valores.
 
 ```{r}
 dados_pb <- dados_pb %>%
@@ -124,7 +124,7 @@ dados_pb %>%
 Logo de cara, é fácil perceber que *Passagens Aéreas* e *Combustíveis e Lubrificantes* são as despesas mais comuns dos deputados.
 
 ### 2.2 Visualizações
-Primeiramente, quero saber quantas depesas cada partido tem na tabela:
+Primeiramente, quero saber quantas despesas cada partido tem na tabela:
 
 ```{r}
 dados_pb %>%
@@ -173,7 +173,7 @@ dados_sum %>%
   coord_flip()
 ```
 
-Pelo gráfico acima, pode-se ver que **Aguinaldo Ribeiro é o deputado que mais gasta recursos, seguido por Manoel Junior e Rômulo Gouveia**. Além disso, **10 dos 16 deputados gastam mais que a média (R$ 472.415,20)**. **Major Fábio e Ruy Carneiro são os deputados que menos gastam**.
+Pelo gráfico acima, pode-se ver que **Aguinaldo Ribeiro é o deputado que mais gasta recursos, seguido por Manoel Junior e Rômulo Gouveia**. Além disso, **10 dos 16 deputados gastam mais que a média (linha preta: R$ 472.415,20)**. **Major Fábio e Ruy Carneiro são os deputados que menos gastam**.
 
 Vamos analisar o maior gasto dos deputados que mais e menos gastam, respectivamente:
 
@@ -222,7 +222,7 @@ dados_sum %>%
   coord_flip()
 ```
 
-É fácil perceber pelo gráfico que **a *Divulgação da atividade parlamentar* é o tipo de despesa que os deputados mais gastam recursos da cota**, seguido por *Passagens Aéreas*, que é praticamente metade desse valor.
+> É fácil perceber pelo gráfico que __a *Divulgação da atividade parlamentar* é o tipo de despesa que os deputados mais gastam recursos da cota__, seguido por *Passagens Aéreas*, que é praticamente metade desse valor.
 
 Fiquei curioso para saber como seria esse gráfico por deputado.
 
@@ -283,9 +283,9 @@ dados_sum %>%
 kable(filter(dados_pb, valor_liq >= 20000))
 ```
 
-A tabela acima mostra que, como já vimos anteriormente, grandes quantias de dinheiro são gastas com *Divulgação da Atividade Parlamentar*. Porém, há dois dados interessantes: __O deputado Ruy Carneiro gastou R$25.200,00 com *Consultorias, Pesquisas e Trabalhos Técnicos*__; __O deputado Hugo Mota fretou/alugou uma Aeronave por R$24.150,00!!__.
+A tabela acima mostra que, como já vimos anteriormente, grandes quantias de dinheiro são gastas com *Divulgação da Atividade Parlamentar*. Porém, há dois dados interessantes: __o deputado Ruy Carneiro gastou R$25.200,00 com *Consultorias, Pesquisas e Trabalhos Técnicos*__; __o deputado Hugo Mota fretou/alugou uma Aeronave por R$24.150,00!!__.
 
-De acordo com o [site da camara](http://www.camara.leg.br/cota-parlamentar/index.jsp), esse gasto do deputado Ruy Carneiro foi referente um [censo estatístico](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2276/2015/5580561.pdf) na cidade de Bayeux. Já __Hugo Mota, fez 9 viagens de avião fretado num período de 17 dias__ entre João Pessoa-PB, Recife-PE, Guarabira-PB, e Maceió-AL (ver [Recibo](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2271/2015/5787224.pdf)).
+De acordo com o [site da camara](http://www.camara.leg.br/cota-parlamentar/index.jsp), esse gasto do deputado Ruy Carneiro foi referente a um [censo estatístico](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2276/2015/5580561.pdf) realizado na cidade de Bayeux. Já __Hugo Mota, fez 9 viagens de avião fretado num período de 17 dias__ entre João Pessoa-PB, Recife-PE, Guarabira-PB, e Maceió-AL (ver [recibo](http://www.camara.gov.br/cota-parlamentar//documentos/publ/2271/2015/5787224.pdf)).
 
 Outra forma de visualizar o gráfico acima, seria gerar um hetmap mostrando a quantidade de registros por tipo de despesa para cada deputado:
 
@@ -329,7 +329,9 @@ dados_sum %>%
   coord_flip()
 ```
 
-Logo, pelo gráfico acima, a resposta é: __a *Divulgação da Atividade Parlamentar* é o tipo de despesa que mais varia entre todos os deputados (entre 0 e R$64.000,00, como visto onde imprimi o maior gasto entre todos os deputados), seguido por *Consultorias, Pesquisas e Trabalhos Técnicos* e *Locação ou Fretamento de Aeronaves*__.
+Logo, pelo gráfico acima, a resposta é: 
+
+> __a *Divulgação da Atividade Parlamentar* é o tipo de despesa que mais varia entre todos os deputados, seguido por *Consultorias, Pesquisas e Trabalhos Técnicos* e *Locação ou Fretamento de Aeronaves*__.
 
 Finalmente, resolvi plotar o mesmo gráfico separando os tipos de despesa para cada Deputado:
 
@@ -390,6 +392,14 @@ kable(dados_pb %>%
 
 Como esperado, esses deputados apresentaram uma variação muito grande para uma mesma despesa, principalmente Benjamim Maranhão.
 
-# 4. Conclusões
+## 4. Conclusões
 
-Pelas análises realizadas nesse trabalho, pode-se concluir que os deputados paraibanos gastam uma quantia considerável de recursos públicos com *Divulgação da Atividade Parlamentar* e *Passagens Aéreas*, sendo, em alguns casos, exagerados e de certa forma displicentes. Apesar dos dados estarem restritamente voltados aos gastos com certas despesas - não considerando outros fatores -, a impressão que fica é que alguns deputados se preocupam mais em viajar e se reeleger. A média de recursos gastos por um deputado durante o período dessa análise (+R$470.000,00) é de certa forma revoltante, visto que o retorno à população não é proporcional. Gasta-se muito e melhora-se pouco.
+Este trabalho analisou os dados dos deputados paraibanos durante o período de Janeiro de 2015 à Julho de 2016. De acordo com as analises, pode-se concluir:
+
+* Somente o PMDB e o PSDB tiveram mais de um representante na câmara;
+* A média dos valores líquidos registrados é de R$891,77. A mediana é R$230,02;
+* Entretanto, cada deputado gastou, em média, R$472.415,20;
+* Os gastos mais comuns são relacionados a transporte dos deputados: *Passagens aéreas* e *Combustíveis e Lubrificantes*;
+* No entanto, os deputados paraibanos gastam mais dinheiro com *Divulgação da Atividade Parlamentar*, seguido de *Passagens Aéreas*;
+* Os tipos de despesas menos utilizados pelos deputados são: *Assinatura de Publicações* e *Serviço de Segurança Prestado por Empresas Especializadas*;
+* A *Divulgação da Atividade Parlamentar* é a despesas que mais apresenta variação de valores;
