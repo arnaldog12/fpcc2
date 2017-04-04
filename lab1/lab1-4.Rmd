@@ -1,0 +1,135 @@
+---
+title: "Lab 1 - Checkpoint 4 - Minhas perguntas sobre deputados"
+author: "Arnaldo Gualberto"
+date: "04/04/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+No checkpoint 4 do lab1, vou tentar responder as seguintes perguntas:
+
+__1. Para o ano de 2015 (ano de eleições), quanto cada partido gasta ao longo dos meses do ano? Será que o valor aumenta à medida que as eleições se aproximam?__
+
+__2. Qual a distribuição das despesas ao longo do ano por partido?__
+
+__3. Qual a correlação entre a cota por estado e o valor líquido? Ou seja, será que estados que tem maior cota necessariamente gastam mais?__
+
+# 0. Includes
+
+```{r}
+library(dplyr, warn.conflicts = F)
+library(ggplot2)
+library(readr)
+library(stringr)
+library(knitr)
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
+```
+
+# 1. Leitura e limpeza dos dados
+
+Primeiramente, vou carregar os dados e ter uma visão rápida deles:
+```{r, message=FALSE, warning=TRUE}
+dados <- read_csv("dados/2015-2016-ate-mes-7.csv")
+glimpse(dados)
+```
+
+Uma explicação mais detalhada sobre cada coluna, pode ser encontrada [aqui](http://www2.camara.leg.br/transparencia/cota-para-exercicio-da-atividade-parlamentar/explicacoes-sobre-o-formato-dos-arquivos-xml).
+
+Vou selecionar, então, somente as colunas que me interessam e remover as linhas com _NA_:
+```{r}
+dados <- dados %>%
+  select(partido = sgPartido, 
+         nome = txNomeParlamentar, 
+         uf = sgUF, 
+         descricao = txtDescricao, 
+         valor_liq = vlrLiquido, 
+         mes = numMes,
+         ano = numAno) %>%
+  filter(complete.cases(.))
+head(dados, 10)
+```
+
+Agora, quero analisar os valores únicos de algumas das colunas que selecionei:
+```{r}
+"Partidos:";unique(dados$partido);
+"Descrições:";unique(dados$descricao);
+```
+
+Analisando os resultados, vou efetuar as seguintes transformações nos dados:
+
+1. Converter os nomes dos deputados e as descrições de despesas para *CamelCase*;
+2. Converter as despesas *Emissão de Bilhete Aéreo* para *PASSAGENS AÉREAS*, já que representam a mesma coisa.
+3. Remover os valores líquidos negativos - que representam reembolso - para não atrapalhar nos cálculos sobre os valores.
+
+```{r}
+dados <- dados %>%
+  mutate(descricao = ifelse(descricao == "Emissão Bilhete Aéreo", "PASSAGENS AÉREAS", descricao)) %>%
+  mutate(nome = str_to_title(nome)) %>%
+  mutate(descricao = str_to_title(descricao)) %>%
+  filter(valor_liq > 0)
+```
+
+Por fim, quero analisar descritivamente os valores de *valor_liq*:
+```{r}
+summary(dados$valor_liq)
+```
+
+Pelo resultado acima, é possível ver que nossas despesas vão de R$0,01 até R$189.600,00. Além disso, 75% dos valores são menores que R$494,30.
+
+# 2. Respostas
+#### a. Para o ano de 2015 (ano de eleições), quanto cada partido gasta ao longo dos meses do ano?
+
+Primeiramente tenho de filtrar os dados somente de 2015:
+```{r}
+dados_2015 = dados %>%
+  filter(ano == 2015)
+head(dados_2015)
+```
+
+
+Para responder a perguntar, vou agrupar os valor gasto por cada partido para cada mês do ano.
+```{r, fig.width=12}
+dados_sum <- dados %>%
+  group_by(partido, mes) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = total, fill=partido)) +
+  geom_line(aes(colour = partido))
+```
+
+
+```{r, fig.width=12, fig.height=20}
+dados_sum <- dados %>%
+  group_by(partido, mes) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = total, fill=partido)) +
+  geom_line(aes(colour = partido)) +
+  facet_grid(partido ~ .)
+```
+
+```{r, fig.width=10}
+dados_sum <- dados %>%
+  group_by(partido, mes) %>%
+  summarise(total = sum(valor_liq))
+
+label_format = function(l)
+{
+  format(l, big.mark = ".", scientific = TRUE, decimal.mark = ",", digits = 1, between="")
+} 
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = partido, fill=total)) +
+  geom_tile(colour="white") +
+  geom_text(aes(label = label_format(total))) +
+  scale_fill_continuous(na.value = "white", low="white", high="steelblue") +
+  theme(panel.background = element_rect(fill="white", colour="white")) 
+```
+
