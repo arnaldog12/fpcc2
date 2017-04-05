@@ -93,8 +93,21 @@ head(dados_2015)
 
 
 Para responder a perguntar, vou agrupar os valor gasto por cada partido para cada mês do ano.
+```{r}
+dados_sum_top_10 = dados %>%
+  group_by(partido) %>% summarise(total = sum(valor_liq)) %>%
+  top_n(10, total)
+
+dados_sum_top_10 %>% 
+  ggplot(aes(x=reorder(partido, total), y = total, fill=partido)) +
+  geom_bar(stat="identity") +
+  geom_hline(yintercept = mean(dados_sum_top_10$total))
+```
+
+
 ```{r, fig.width=12}
 dados_sum <- dados %>%
+  filter(partido %in% dados_sum_top_10$partido) %>%
   group_by(partido, mes) %>%
   summarise(total = sum(valor_liq))
 
@@ -104,8 +117,9 @@ dados_sum %>%
 ```
 
 
-```{r, fig.width=12, fig.height=20}
+```{r, fig.width=12}
 dados_sum <- dados %>%
+  filter(partido %in% dados_sum_top_10$partido) %>%
   group_by(partido, mes) %>%
   summarise(total = sum(valor_liq))
 
@@ -115,21 +129,4 @@ dados_sum %>%
   facet_grid(partido ~ .)
 ```
 
-```{r, fig.width=10}
-dados_sum <- dados %>%
-  group_by(partido, mes) %>%
-  summarise(total = sum(valor_liq))
-
-label_format = function(l)
-{
-  format(l, big.mark = ".", scientific = TRUE, decimal.mark = ",", digits = 1, between="")
-} 
-
-dados_sum %>%
-  ggplot(aes(x = mes, y = partido, fill=total)) +
-  geom_tile(colour="white") +
-  geom_text(aes(label = label_format(total))) +
-  scale_fill_continuous(na.value = "white", low="white", high="steelblue") +
-  theme(panel.background = element_rect(fill="white", colour="white")) 
-```
 
