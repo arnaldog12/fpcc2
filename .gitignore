@@ -34,3 +34,6 @@ vignettes/*.pdf
 
 # Mac files
 .DS_Store
+
+# Data files
+*.csv

@@ -2,7 +2,9 @@
 title: "Lab 1 - Checkpoint 4 - Minhas perguntas sobre deputados"
 author: "Arnaldo Gualberto"
 date: "04/04/2017"
-output: html_document
+output: 
+  html_document:
+    smart: no
 ---
 
 ```{r setup, include=FALSE}
@@ -13,9 +15,7 @@ No checkpoint 4 do lab1, vou tentar responder as seguintes perguntas:
 
 __1. Para o ano de 2015 (ano de eleições), quanto cada partido gasta ao longo dos meses do ano? Será que o valor aumenta à medida que as eleições se aproximam?__
 
-__2. Qual a distribuição das despesas ao longo do ano por partido?__
-
-__3. Qual a correlação entre a cota por estado e o valor líquido? Ou seja, será que estados que tem maior cota necessariamente gastam mais?__
+__2. Qual a correlação entre a cota por estado e o valor líquido? Ou seja, será que estados que tem maior cota necessariamente gastam mais?__
 
 # 0. Includes
 
@@ -28,6 +28,12 @@ library(knitr)
 
 # Coloca todos os titulos dos gráficos centralizados
 theme_update(plot.title = element_text(hjust=0.5))
+
+# vetor para os meses do ano
+meses <- c("Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro")
+
+# paleta de cores
+colorPalette <- c("#000000", "#9D9D9D", "#FFFFFF", "#BE2633", "#E06F8B", "#493C2B", "#A46422", "#EB8931", "#F7E26B", "#2F484E", "#44891A", "#A3CE27", "#1B2632", "#005784", "#31A2F2", "#B2DCEF")
 ```
 
 # 1. Leitura e limpeza dos dados
@@ -88,14 +94,15 @@ Primeiramente tenho de filtrar os dados somente de 2015:
 ```{r}
 dados_2015 = dados %>%
   filter(ano == 2015)
-head(dados_2015)
+glimpse(dados_2015)
 ```
 
 
 Para responder a perguntar, vou agrupar os valor gasto por cada partido para cada mês do ano.
 ```{r}
-dados_sum_top_10 = dados %>%
-  group_by(partido) %>% summarise(total = sum(valor_liq)) %>%
+dados_sum_top_10 = dados_2015 %>%
+  group_by(partido) %>% 
+  summarise(total = sum(valor_liq)) %>%
   top_n(10, total)
 
 dados_sum_top_10 %>% 
@@ -104,21 +111,46 @@ dados_sum_top_10 %>%
   geom_hline(yintercept = mean(dados_sum_top_10$total))
 ```
 
-
-```{r, fig.width=12}
-dados_sum <- dados %>%
+```{r, fig.width=12, fig.height=10}
+dados_sum <- dados_2015 %>%
   filter(partido %in% dados_sum_top_10$partido) %>%
-  group_by(partido, mes) %>%
-  summarise(total = sum(valor_liq))
+  group_by(partido, mes)
 
 dados_sum %>%
-  ggplot(aes(x = mes, y = total, fill=partido)) +
-  geom_line(aes(colour = partido))
+  ggplot(aes(x = mes, y = valor_liq, colour=partido)) +
+  geom_point(position = position_jitter(width = 0.3), alpha=0.5) +
+  facet_grid(partido ~ .) +
+  xlim(meses)
+```
+
+```{r}
+dados_sum <- dados_2015 %>%
+  filter(partido %in% dados_sum_top_10$partido) %>%
+  group_by(partido, mes)
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = valor_liq, colour=partido)) +
+  geom_point(position = position_jitter(width = 0.1)) +
+  coord_flip()
 ```
 
 
 ```{r, fig.width=12}
-dados_sum <- dados %>%
+dados_sum <- dados_2015 %>%
+  filter(partido %in% dados_sum_top_10$partido) %>%
+  group_by(partido, mes)
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = valor_liq, colour=descricao)) +
+  geom_point(position = position_jitter(width = 0.1)) +
+  scale_y_log10() +
+  coord_flip()
+
+```
+
+
+```{r, fig.width=12}
+dados_sum <- dados_2015 %>%
   filter(partido %in% dados_sum_top_10$partido) %>%
   group_by(partido, mes) %>%
   summarise(total = sum(valor_liq))
@@ -126,7 +158,36 @@ dados_sum <- dados %>%
 dados_sum %>%
   ggplot(aes(x = mes, y = total, fill=partido)) +
   geom_line(aes(colour = partido)) +
-  facet_grid(partido ~ .)
+  xlim(meses)
 ```
 
+
+```{r, fig.width=12}
+dados_sum <- dados_2015 %>%
+  filter(partido %in% dados_sum_top_10$partido) %>%
+  group_by(partido, mes) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = total, fill=partido)) +
+  geom_line(aes(colour = partido)) +
+  facet_grid(partido ~ .) +
+  xlim(meses)
+```
+
+```{r, fig.width=12}
+dados_sum <- dados_2015 %>%
+  filter(partido %in% dados_sum_top_10$partido) %>%
+  group_by(partido, mes) %>%
+  filter(mes == 3) %>%
+  group_by(partido, descricao) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = partido, y = total, fill = descricao)) +
+  geom_bar(stat="identity", position = "fill") +
+  coord_flip() +
+  scale_fill_manual(values=colorPalette)
+  
+```
 
