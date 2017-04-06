@@ -51,7 +51,7 @@ Vou selecionar, então, somente as colunas que me interessam e remover as linhas
 dados <- dados %>%
   select(partido = sgPartido, 
          nome = txNomeParlamentar, 
-         uf = sgUF, 
+         estado = sgUF, 
          descricao = txtDescricao, 
          valor_liq = vlrLiquido, 
          mes = numMes,
@@ -182,11 +182,6 @@ dados_sum %>%
 
 Também podemos, visualizar o gráfico acima de forma proporcional:
 ```{r, fig.width=12}
-dados_sum <- dados_2015 %>%
-  group_by(partido, mes, descricao) %>%
-  filter(mes == 3 || mes == 12) %>%
-  summarise(total = sum(valor_liq))
-
 dados_sum %>%
   ggplot(aes(x = partido, y = total, fill = descricao)) +
   geom_bar(position = "fill", stat = "identity") +
@@ -206,110 +201,87 @@ A título de curiosidade, quero saber a quantidade de passagens aéreas comprada
 
 Antes de mais nada, será necessário carregar o arquivo com as informações sobre a cota por estado:
 ```{r}
-dados_cota = read_csv2("dados/valor-cota-por-estado.csv")
+dados_cota = read_csv2("dados/valor-cota-por-estado.csv") %>% rename(cota = valor)
 glimpse(dados_cota)
 ```
 
 ```{r, fig.width=10}
 dados_cota %>%
-  ggplot(aes(x=reorder(estado, valor), y=valor, fill=estado)) +
+  ggplot(aes(x=reorder(estado, cota), y=cota, fill=estado)) +
   geom_bar(stat = "identity") +
-  geom_hline(yintercept = mean(dados_cota$valor))
+  geom_hline(yintercept = mean(dados_cota$cota))
 ```
 
 ```{r}
 dados_cota %>%
-  ggplot(aes(x= 0, y = valor)) +
+  ggplot(aes(x= 0, y = cota)) +
   geom_boxplot()
 ```
 
 ```{r}
-summary(dados_cota$valor)
+summary(dados_cota$cota)
 ```
 
-Também será necessário, recarregar os dados de 2015 (para incluir os gastos de todos os partidos:
+Também será necessário, recarregar os dados de 2015 (para incluir os gastos de todos os partidos):
 ```{r}
 dados_2015 = dados %>%
   filter(ano == 2015)
 ```
 
-```{r, fig.width=10}
-dados_sum = dados_2015 %>% 
-  group_by(uf) %>% 
+Antes de começar a responder a pergunta, vou criar um dataframe que conterá as principais informações para as respostas, me ajudando a respondê-las:
+```{r}
+# numero de deputados por estado
+dados_dep_por_estado <- dados_2015 %>%
+  group_by(estado) %>%
   summarise(n_deputados = length(unique(nome)))
 
-dados_sum %>%
-  ggplot(aes(x = reorder(uf, n_deputados), y = n_deputados, fill=uf)) +
+# valor total gasto por estado no ano de 2015
+dados_gastos_por_estado <- dados_2015 %>%
+  group_by(estado) %>%
+  summarise(total_anual_gasto = sum(valor_liq)) 
+
+# valor total ganho e gasto por estado
+dados_join <- left_join(dados_dep_por_estado, dados_cota, by = "estado") %>%
+  mutate(total_anual_cotas = n_deputados*cota*12) %>%
+  left_join(dados_gastos_por_estado, by = "estado")
+```
+
+
+```{r, fig.width=10}
+dados_dep_por_estado %>%
+  ggplot(aes(x = reorder(estado, n_deputados), y = n_deputados, fill=estado)) +
   geom_bar(stat = "identity")
 ```
 
 ```{r, fig.width=10}
-dados_sum <- dados_2015 %>%
-  group_by(uf) %>%
-  summarise(total = sum(valor_liq))
-
-dados_sum %>%
-  ggplot(aes(x = reorder(uf, total), y = total, fill=uf)) +
+dados_gastos_por_estado %>%
+  ggplot(aes(x = reorder(estado, total_anual_gasto), y = total_anual_gasto, fill=estado)) +
   geom_bar(stat = "identity")
 ```
 
 ```{r}
-# numero de deputados por estado
-dados_sum_dep <- dados_2015 %>%
-  group_by(uf) %>%
-  summarise(n_deputados = length(unique(nome))) %>%
-  rename(estado = uf)
-
-# valor total gasto por estado
-dados_sum <- dados_2015 %>%
-  group_by(uf) %>%
-  summarise(total_estado = sum(valor_liq)) %>%
-  rename(estado = uf)
-
-# valor total ganho e gasto por estado
-dados_join <- left_join(dados_sum_dep, dados_cota, by = "estado") %>%
-  mutate(total_deputado = n_deputados*valor*12) %>%
-  left_join(dados_sum, by = "estado")
-
 dados_join %>%
-  ggplot(aes(x = total_deputado, y = total_estado)) +
+  ggplot(aes(x = total_anual_cotas, y = total_anual_gasto)) +
   geom_point(aes(colour=estado))
 ```
 
 ```{r}
-cor(dados_join$total_deputado, dados_join$total_estado, method='pearson')
-cor(dados_join$total_deputado, dados_join$total_estado, method='kendall')
-cor(dados_join$total_deputado, dados_join$total_estado, method='spearman')
+cor(dados_join$total_anual_cotas, dados_join$total_anual_gasto, method='pearson')
+cor(dados_join$total_anual_cotas, dados_join$total_anual_gasto, method='kendall')
+cor(dados_join$total_anual_cotas, dados_join$total_anual_gasto, method='spearman')
 ```
 
 
 ```{r}
-dados_sum_dep <- dados_2015 %>%
-  group_by(uf) %>%
-  summarise(n_deputados = length(unique(nome)))
-
-dados_sum_total <- dados_2015 %>%
-  group_by(uf) %>%
-  summarise(total = sum(valor_liq))
-
-left_join(dados_sum_dep, dados_sum_total, by = "uf") %>%
-  ggplot(aes(x = n_deputados, y = total)) +
-  geom_point(aes(colour = uf))
+dados_join %>%
+  ggplot(aes(x = n_deputados, y = total_anual_gasto)) +
+  geom_point(aes(colour = estado))
 ```
 
 ```{r, fig.width=12}
-dados_sum_dep <- dados_2015 %>%
-  group_by(uf) %>%
-  summarise(n_deputados = length(unique(nome)))
-
-dados_sum_total <- dados_2015 %>%
-  group_by(uf) %>%
-  summarise(total = sum(valor_liq))
-
-left_join(dados_sum_dep, dados_sum_total, by = "uf") %>%
-  mutate(valor = total / (n_deputados*12)) %>%
-  rename(estado = uf) %>%
-  ggplot(aes(x = reorder(estado, valor), y = valor)) +
+dados_join %>%
+  mutate(cota = total_anual_gasto / (n_deputados*12)) %>%
+  ggplot(aes(x = reorder(estado, cota), y = cota)) +
   geom_point(aes(colour = "Gasto médio por deputado (mês)")) +
   geom_point(data = dados_cota, aes(colour="Cota por deputado (mês)"))
 ```
