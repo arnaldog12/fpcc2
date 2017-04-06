@@ -66,7 +66,7 @@ Agora, quero analisar os valores únicos de algumas das colunas que selecionei:
 "Descrições:";unique(dados$descricao);
 ```
 
-Analisando os resultados, vou efetuar as seguintes transformações nos dados:
+Podemos ver que, ao todo, temos 29 partidos e 18 tipos de despesas diferentes. A partir dos dados que vi até aqui, vou efetuar as seguintes transformações nos dados:
 
 1. Converter os nomes dos deputados e as descrições de despesas para *CamelCase*;
 2. Converter as despesas *Emissão de Bilhete Aéreo* para *PASSAGENS AÉREAS*, já que representam a mesma coisa.
@@ -80,36 +80,179 @@ dados <- dados %>%
   filter(valor_liq > 0)
 ```
 
-Por fim, quero analisar descritivamente os valores de *valor_liq*:
-```{r}
-summary(dados$valor_liq)
-```
-
-Pelo resultado acima, é possível ver que nossas despesas vão de R$0,01 até R$189.600,00. Além disso, 75% dos valores são menores que R$494,30.
-
 # 2. Respostas
 #### a. Para o ano de 2015 (ano de eleições), quanto cada partido gasta ao longo dos meses do ano?
 
-Primeiramente tenho de filtrar os dados somente de 2015:
+Primeiramente, tenho de filtrar os dados somente de 2015.
 ```{r}
 dados_2015 = dados %>%
   filter(ano == 2015)
+
 glimpse(dados_2015)
 ```
 
-
-Para responder a perguntar, vou agrupar os valor gasto por cada partido para cada mês do ano.
+Além disso, vou restringir minhas análises aos 10 partidos que mais gastaram ao longo do ano, pois quero facilitar a visualização dos gráficos.
 ```{r}
+# Sumariza os gastos totais dos 10 partidos que mais gastam
 dados_sum_top_10 = dados_2015 %>%
   group_by(partido) %>% 
   summarise(total = sum(valor_liq)) %>%
   top_n(10, total)
 
+# Pega os dados somentes dos 10 partidos que mais gastam
+dados_2015 <- dados_2015 %>%
+  filter(partido %in% dados_sum_top_10$partido)
+```
+
+Antes de responder a pergunta, quero analisar o valor total gasto pelos 10 partidos que mais gastaram no ano de 2015:
+```{r}
 dados_sum_top_10 %>% 
   ggplot(aes(x=reorder(partido, total), y = total, fill=partido)) +
   geom_bar(stat="identity") +
   geom_hline(yintercept = mean(dados_sum_top_10$total))
 ```
+
+Pelo gráfico acima, pode-ser perceber que __o PMDB foi o partido que mais gastou em 2015, seguido pelo PT, PP e PSDB.__ Esses 4 partidos, aliás, gastam mais que a média dos 10 partidos que mais gastam (aproximadamente 17 milhões de reais).
+
+Quero agora observar a distribuição dos valores gastos por cada um desses partidos, além de ter uma noção geral desses valores:
+```{r}
+dados_2015 %>%
+  group_by(partido) %>%
+  ggplot(aes(x = partido, y = valor_liq, fill = partido)) +
+  geom_boxplot() +
+  geom_hline(yintercept = mean(dados_2015$valor_liq)) +
+  scale_y_log10()
+```
+
+```{r}
+summary(dados_2015$valor_liq)
+```
+
+```{r}
+dados_2015 %>%
+  group_by(partido) %>%
+  summarise(min = min(valor_liq), mean=mean(valor_liq), median=median(valor_liq), max=max(valor_liq))
+```
+
+Pode-se perceber que os partidos apresentam uma distância interquartil e mediana bem similar. Além disso, em praticamente todos os partidos, 75% dos valores encontram-se abaixo da média.
+
+Agora, para responder a pergunta, vou mostrar o gráfico do valor líquido gasto por partido ao longo do ano de 2015:
+```{r, fig.width=12}
+dados_sum <- dados_2015 %>%
+  group_by(partido, mes) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = total, fill=partido)) +
+  geom_line(aes(colour = partido)) +
+  xlim(meses)
+```
+
+O gráfico acima também pode ser visualizado de maneira separada para cada partido:
+```{r, fig.width=12}
+dados_sum <- dados_2015 %>%
+  group_by(partido, mes) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = mes, y = total, fill=partido)) +
+  geom_line(aes(colour = partido)) +
+  facet_grid(partido ~ .) +
+  xlim(meses)
+```
+
+De uma maneira geral, __os valores gastos por partido tendem a aumentar ao longo do ano__, como esperado. Porém, ao contrário do imaginado, __não há um aumento de gastos significante perto das eleições__ (meses próximos a Outubro). Além disso, o gráfico mostra dois pontos que eu considero importante:
+
+__* Todos os partidos aumentaram os gastos entre os meses Fevereiro-Março e Novembro-Dezembro.__
+
+Como minha pergunta extra a essa questão, quero analisar então os gastos dos meses de Março e Dezembro.
+
+```{r, fig.width=12}
+dados_sum <- dados_2015 %>%
+  group_by(partido, mes, descricao) %>%
+  filter(mes == 3 || mes == 12) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = partido, y = total, fill = descricao)) +
+  geom_bar(position = "stack", stat = "identity") +
+  facet_wrap(~ mes, labeller = as_labeller(c("3" = "Março", "12" = "Dezembro"))) +
+  scale_fill_manual(values = colorPalette)
+```
+
+Também podemos, visualizar o gráfico acima de forma proporcional:
+```{r, fig.width=12}
+dados_sum <- dados_2015 %>%
+  group_by(partido, mes, descricao) %>%
+  filter(mes == 3 || mes == 12) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = partido, y = total, fill = descricao)) +
+  geom_bar(position = "fill", stat = "identity") +
+  facet_wrap(~ mes, labeller = as_labeller(c("3" = "Março", "12" = "Dezembro"))) +
+  scale_fill_manual(values = colorPalette)
+```
+
+Pelos gráficos acima, pode-se observar que, comparando-se os meses de Março e Dezembro: 
+
+* houve um aumento significativo nas despesas com _Divulgação da Atividade Parlamentar_;
+* diminuiram-se as despesas com _Passagens Aéreas_ e, de certa forma, _Locação Ou Fretamento de Veículos Automores_;
+
+A título de curiosidade, quero saber a quantidade de passagens aéreas compradas no mês de Março para todos os partido e quem foi o deputados que mais gastou com _Divulgação da Atividade Parlamentar_:
+
+
+#### b. Qual a correlação entre a cota por estado e o valor líquido? Ou seja, será que estados que tem maior cota necessariamente gastam mais?
+
+Antes de mais nada, será necessário carregar o arquivo com as informações sobre a cota por estado:
+```{r}
+dados_cota = read_csv2("dados/valor-cota-por-estado.csv")
+glimpse(dados_cota)
+```
+
+```{r, fig.width=10}
+dados_cota %>%
+  ggplot(aes(x=estado, y=valor, fill=estado)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = mean(dados_cota$valor))
+```
+
+```{r}
+dados_cota %>%
+  ggplot(aes(x= 0, y = valor)) +
+  geom_boxplot()
+```
+
+```{r}
+summary(dados_cota$valor)
+```
+
+Também será necessário, recarregar os dados de 2015 (para incluir os gastos de todos os partidos:
+```{r}
+dados_2015 = dados %>%
+  filter(ano == 2015)
+```
+
+```{r, fig.width=10}
+dados_sum = dados_2015 %>% 
+  group_by(uf) %>% 
+  summarise(n_deputados = length(unique(nome)))
+
+dados_sum %>%
+  ggplot(aes(x = reorder(uf, n_deputados), y = n_deputados, fill=uf)) +
+  geom_bar(stat = "identity")
+```
+
+```{r, fig.width=10}
+dados_sum <- dados_2015 %>%
+  group_by(uf) %>%
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = reorder(uf, total), y = total, fill=uf)) +
+  geom_bar(stat = "identity")
+```
+
 
 ```{r, fig.width=12, fig.height=10}
 dados_sum <- dados_2015 %>%
@@ -123,71 +266,4 @@ dados_sum %>%
   xlim(meses)
 ```
 
-```{r}
-dados_sum <- dados_2015 %>%
-  filter(partido %in% dados_sum_top_10$partido) %>%
-  group_by(partido, mes)
-
-dados_sum %>%
-  ggplot(aes(x = mes, y = valor_liq, colour=partido)) +
-  geom_point(position = position_jitter(width = 0.1)) +
-  coord_flip()
-```
-
-
-```{r, fig.width=12}
-dados_sum <- dados_2015 %>%
-  filter(partido %in% dados_sum_top_10$partido) %>%
-  group_by(partido, mes)
-
-dados_sum %>%
-  ggplot(aes(x = mes, y = valor_liq, colour=descricao)) +
-  geom_point(position = position_jitter(width = 0.1)) +
-  scale_y_log10() +
-  coord_flip()
-
-```
-
-
-```{r, fig.width=12}
-dados_sum <- dados_2015 %>%
-  filter(partido %in% dados_sum_top_10$partido) %>%
-  group_by(partido, mes) %>%
-  summarise(total = sum(valor_liq))
-
-dados_sum %>%
-  ggplot(aes(x = mes, y = total, fill=partido)) +
-  geom_line(aes(colour = partido)) +
-  xlim(meses)
-```
-
-
-```{r, fig.width=12}
-dados_sum <- dados_2015 %>%
-  filter(partido %in% dados_sum_top_10$partido) %>%
-  group_by(partido, mes) %>%
-  summarise(total = sum(valor_liq))
-
-dados_sum %>%
-  ggplot(aes(x = mes, y = total, fill=partido)) +
-  geom_line(aes(colour = partido)) +
-  facet_grid(partido ~ .) +
-  xlim(meses)
-```
-
-```{r, fig.width=12}
-dados_sum <- dados_2015 %>%
-  filter(partido %in% dados_sum_top_10$partido) %>%
-  group_by(partido, mes) %>%
-  filter(mes == 3) %>%
-  group_by(partido, descricao) %>%
-  summarise(total = sum(valor_liq))
-
-dados_sum %>%
-  ggplot(aes(x = partido, y = total, fill = descricao)) +
-  geom_bar(stat="identity", position = "fill") +
-  coord_flip() +
-  scale_fill_manual(values=colorPalette)
-  
-```
 
