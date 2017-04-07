@@ -105,7 +105,7 @@ dados_2015 <- dados_2015 %>%
 ```
 
 Antes de responder a pergunta, quero analisar o valor total gasto pelos 10 partidos que mais gastaram no ano de 2015:
-```{r}
+```{r, fig.width=12}
 dados_sum_top_10 %>% 
   ggplot(aes(x=reorder(partido, total), y = total, fill=partido)) +
   geom_bar(stat="identity") +
@@ -143,7 +143,7 @@ dados_2015 %>%
 Pode-se perceber que os partidos apresentam uma distância interquartil e mediana bem similar. Além disso, em praticamente todos os partidos, 75% dos valores encontram-se abaixo da média.
 
 Agora, para responder a pergunta, vou mostrar o gráfico do valor líquido gasto por partido ao longo do ano de 2015:
-```{r, fig.width=12}
+```{r, fig.width=12, fig.height=8}
 dados_sum <- dados_2015 %>%
   group_by(partido, mes) %>%
   summarise(total = sum(valor_liq))
@@ -158,7 +158,7 @@ dados_sum %>%
 ```
 
 O gráfico acima também pode ser visualizado de maneira separada para cada partido:
-```{r, fig.width=12}
+```{r, fig.width=12, fig.height=10}
 dados_sum <- dados_2015 %>%
   group_by(partido, mes) %>%
   summarise(total = sum(valor_liq))
@@ -173,7 +173,7 @@ dados_sum %>%
   ggtitle("Valor mensal gasto por partido em 2015")
 ```
 
-De uma maneira geral, __os valores gastos por partido tendem a aumentar ao longo do ano__, como esperado. Porém, ao contrário do imaginado, __não há um aumento de gastos significante perto das eleições__ (meses próximos a Outubro). Além disso, o gráfico mostra dois pontos que eu considero importante:
+De uma maneira geral, __os valores gastos por partido tendem a aumentar ao longo do ano__, como esperado. Porém, ao contrário do imaginado, __não há um aumento de gastos significante perto das eleições__ (meses anteriores a Outubro). Além disso, o gráfico mostra dois pontos que eu considero importante:
 
 __* Todos os partidos aumentaram os gastos entre os meses Fevereiro-Março e Novembro-Dezembro.__
 
@@ -282,7 +282,7 @@ dados_dep_por_estado %>%
 
 Pelo gráfico, __os estados de São Paulo, Rio de Janeiro e Minas Gerais são os estados com mais deputados no Brasil. Por outro lado, os estados do Amapá e Espírito Santo, juntamente com o Distrito Federal, possuem o menor número de deputados__.
 
-Por fim, quero analisar o valor total gasto por estado:
+Para finalizar as análises das variáveis, quero visualizar o valor total gasto por estado:
 ```{r, fig.width=12}
 dados_gastos_por_estado %>%
   ggplot(aes(x = reorder(estado, total_anual_gasto), y = total_anual_gasto, fill=estado)) +
@@ -292,7 +292,9 @@ dados_gastos_por_estado %>%
   ggtitle("Valor total gasto por estado")
 ```
 
+Percebe-se que o gráfico acima apresenta uma tendência bem parecida com a do gráfico anterior, inclusive com os estados em posições próximas do ranking. Isso pode ser um indício que quanto maior o número de deputados em um estado, maior o valor total gasto pelo estado, o que é de se esperar.
 
+Agora, para responder a pergunta do exercício, vou analisar a relação entre a cota que o estado recebe e o valor líquido total gasto anual. Eu espero que haja uma forte correlação entre essas variáveis (acima de 0.9 para o coeficiente de Pearson):
 ```{r, fig.width=12}
 dados_join %>%
   ggplot(aes(x = total_anual_cotas, y = total_anual_gasto)) +
@@ -301,13 +303,18 @@ dados_join %>%
   ggtitle("Relação entre o total de cotas recebidas e o total de gastos")
 ```
 
+O gráfico nos mostra que __há uma relação entre o total de cotas que o estado recebe e o valor total gasto anualmente__, conforme o esperado. Em outras palavras, __estados que recebem um maior valor de cota (quando somados todos os deputados), gastam mais ao longo do ano que os estados que recebem menos cotas.__ O gráfico também mostra, pelo tamanho dos círculos, que essa correlação é influenciada pelo número de deputados, onde estados com mais deputados, gastam mais. Além disso, também é possível observar que o estado de São Paulo (ponto mais superior-direito) se destaca em relação aos outros estados, mas segue a mesma tendência de gastos.
+
+Para verificar a correlação das variáveis, vou analisar os coeficientes de correlação:
 ```{r}
 cor(dados_join$total_anual_cotas, dados_join$total_anual_gasto, method='pearson')
 cor(dados_join$total_anual_cotas, dados_join$total_anual_gasto, method='kendall')
 cor(dados_join$total_anual_cotas, dados_join$total_anual_gasto, method='spearman')
 ```
 
+Logo, __os coeficientes também confirmam uma forte relação positiva entre entre a cota anual recebida por estado e o valor líquido total gasto anualmente.__
 
+A títutlo de curiosidade, resolvi plotar o mesmo gráfico novamente, porém comparando o valor total gasto anual pelo número de deputados de um estado:
 ```{r, fig.width=12}
 dados_join %>%
   ggplot(aes(x = n_deputados, y = total_anual_gasto)) +
@@ -316,6 +323,18 @@ dados_join %>%
   ggtitle("Relação entre quantidade de deputados e o total de gastos")
 ```
 
+O gráfico, como esperado, apresenta um comportamento similar ao anterior, porém agora podemos ver __o valor da cota recebido por deputado (tamanho do círculo) não influencia necessariamente no valor total gasto anual__. Podemos observar que alguns estados que recebem cotas maiores (círculos maiores) se concentram na parte inferior-esquerda do gráfico. Obviamente, isso deve-se ao fato (provavelmente) de serem estados com menos deputados.
+
+Também quis observar a correlação entre a quantidade de deputados e o total gasto anual:
+```{r}
+cor(dados_join$n_deputados, dados_join$total_anual_gasto, method='pearson')
+cor(dados_join$n_deputados, dados_join$total_anual_gasto, method='kendall')
+cor(dados_join$n_deputados, dados_join$total_anual_gasto, method='spearman')
+```
+
+Os coeficientes acima são bem similares aos coeficientes da correlação analisada anteriormente (total de cotas recebidas anualmente por estado x total anual gasto).
+
+Por fim, como questão extra, resolvi analisar a relação entre a cota recebida e o gasto médio mensal por deputado de cada estado:
 ```{r, fig.width=12}
 dados_join %>%
   mutate(cota = total_anual_gasto / (n_deputados*12)) %>%
@@ -323,6 +342,18 @@ dados_join %>%
   geom_point(aes(colour = "Gasto médio mensal por deputado", size=n_deputados)) +
   geom_point(data = dados_cota, aes(colour="Cota mensal por deputado ")) +
   labs(x = "Estado", y = "Cota por deputado") +
-  ggtitle("Relação entre a cota recebida e o gasto médio mensal")
+  ggtitle("Cota mensal recebida e o gasto médio por deputado de cada estado")
 ```
 
+
+O gráfico acima mostra que __o gasto médio por deputado de cada estado é sempre menor que a cota recebida__ (ainda bem!). De fato, de acordo com o gráfico acima, __poderíamos reduzir a cota mensal de cada deputado para R$35.000,00 (até menos) que atenderia perfeitamente a necessidade de todos os estados__. Também podemos observar que __os deputados da Paraíba apresentam o maior gasto médio mensal em comparação com os outros estados, enquanto que cada deputado do DF gasta, em média, aproximadamente metade da cota recebida.__ 
+
+# 3. Conclusões
+
+Este relatório analisou os dados dos deputados de todos os estados brasileiros no ano de 2015 (ano de eleição). De acordo com as análises, pode-se concluir:
+
+* Os valores gastos por partido tendem a aumentar ao longo do ano, porém não há um aumento de gastos significante nos meses anteriores as eleições;
+* Há uma relação entre o total de cotas que o estado recebe e o valor total gasto anualmente. Ou seja, estados que recebem um maior valor de cota (quando somados todos os deputados), gastam mais ao longo do ano que os estados que recebem menos cotas.
+* O valor da cota recebido por deputado não influencia necessariamente no valor total gasto anual. Ou seja, 
+* O gasto médio por deputado de cada estado é sempre menor que a cota recebida;
+* Os deputados da Paraíba apresentam o maior gasto médio mensal em comparação com os outros estados.
