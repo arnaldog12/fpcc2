@@ -11,13 +11,13 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-No checkpoint 4 do lab1, vou tentar responder as seguintes perguntas:
+No checkpoint 4 do lab1, eu devo escolher 2 perguntas que fiz no checkpoint 3 e respondê-las utilizando ferramentas visuais e numéricas de análise descritiva e exploratória. Portanto, as duas questões que eu escolhi responder são:
 
 __1. Para o ano de 2015 (ano de eleições), quanto cada partido gasta ao longo dos meses do ano? Será que o valor aumenta à medida que as eleições se aproximam?__
 
 __2. Qual a correlação entre a cota por estado e o valor líquido? Ou seja, será que estados que tem maior cota necessariamente gastam mais?__
 
-# 0. Includes
+# 0. Includes e Settings
 
 ```{r}
 library(dplyr, warn.conflicts = F)
@@ -66,11 +66,11 @@ Agora, quero analisar os valores únicos de algumas das colunas que selecionei:
 "Descrições:";unique(dados$descricao);
 ```
 
-Podemos ver que, ao todo, temos 29 partidos e 18 tipos de despesas diferentes. A partir dos dados que vi até aqui, vou efetuar as seguintes transformações nos dados:
+Podemos ver que, ao todo, temos 29 partidos e 18 tipos de despesas diferentes. A partir dos dados que vi até aqui, vou efetuar as seguintes transformações:
 
 1. Converter os nomes dos deputados e as descrições de despesas para *CamelCase*;
 2. Converter as despesas *Emissão de Bilhete Aéreo* para *PASSAGENS AÉREAS*, já que representam a mesma coisa.
-3. Remover os valores líquidos negativos - que representam reembolso - para não atrapalhar nos cálculos sobre os valores.
+3. Remover os valores líquidos negativos para não atrapalhar nos cálculos sobre os valores.
 
 ```{r}
 dados <- dados %>%
@@ -109,19 +109,25 @@ Antes de responder a pergunta, quero analisar o valor total gasto pelos 10 parti
 dados_sum_top_10 %>% 
   ggplot(aes(x=reorder(partido, total), y = total, fill=partido)) +
   geom_bar(stat="identity") +
-  geom_hline(yintercept = mean(dados_sum_top_10$total))
+  geom_hline(yintercept = mean(dados_sum_top_10$total)) +
+  labs(x = "Partido", y = "Total gasto") +
+  ggtitle("Total gasto por partido em 2015") +
+  theme(legend.position = "none")
 ```
 
 Pelo gráfico acima, pode-ser perceber que __o PMDB foi o partido que mais gastou em 2015, seguido pelo PT, PP e PSDB.__ Esses 4 partidos, aliás, gastam mais que a média dos 10 partidos que mais gastam (aproximadamente 17 milhões de reais).
 
 Quero agora observar a distribuição dos valores gastos por cada um desses partidos, além de ter uma noção geral desses valores:
-```{r}
+```{r, fig.width=12}
 dados_2015 %>%
   group_by(partido) %>%
   ggplot(aes(x = partido, y = valor_liq, fill = partido)) +
   geom_boxplot() +
   geom_hline(yintercept = mean(dados_2015$valor_liq)) +
-  scale_y_log10()
+  scale_y_log10() +
+  labs(x = "Partido", y = "Valor Líquido (log)") +
+  ggtitle("Distribuição dos valores gastos por partido em 2015") +
+  theme(legend.position = "none")
 ```
 
 ```{r}
@@ -131,7 +137,7 @@ summary(dados_2015$valor_liq)
 ```{r}
 dados_2015 %>%
   group_by(partido) %>%
-  summarise(min = min(valor_liq), mean=mean(valor_liq), median=median(valor_liq), max=max(valor_liq))
+  summarise(min = min(valor_liq), mean=mean(valor_liq), median=median(valor_liq), iqr=IQR(valor_liq), max=max(valor_liq))
 ```
 
 Pode-se perceber que os partidos apresentam uma distância interquartil e mediana bem similar. Além disso, em praticamente todos os partidos, 75% dos valores encontram-se abaixo da média.
@@ -145,7 +151,10 @@ dados_sum <- dados_2015 %>%
 dados_sum %>%
   ggplot(aes(x = mes, y = total, fill=partido)) +
   geom_line(aes(colour = partido)) +
-  xlim(meses)
+  geom_point(aes(color=partido)) + 
+  xlim(meses) +
+  labs(x = "Mês", y = "Total Gasto") +
+  ggtitle("Valor mensal gasto por partido em 2015")
 ```
 
 O gráfico acima também pode ser visualizado de maneira separada para cada partido:
@@ -157,8 +166,11 @@ dados_sum <- dados_2015 %>%
 dados_sum %>%
   ggplot(aes(x = mes, y = total, fill=partido)) +
   geom_line(aes(colour = partido)) +
-  facet_grid(partido ~ .) +
-  xlim(meses)
+  facet_grid(partido ~ ., scale="free") +
+  xlim(meses) +
+  labs(x = "Mês", y = "Total Gasto") +
+  theme(legend.position = "none") +
+  ggtitle("Valor mensal gasto por partido em 2015")
 ```
 
 De uma maneira geral, __os valores gastos por partido tendem a aumentar ao longo do ano__, como esperado. Porém, ao contrário do imaginado, __não há um aumento de gastos significante perto das eleições__ (meses próximos a Outubro). Além disso, o gráfico mostra dois pontos que eu considero importante:
@@ -177,7 +189,9 @@ dados_sum %>%
   ggplot(aes(x = partido, y = total, fill = descricao)) +
   geom_bar(position = "stack", stat = "identity") +
   facet_wrap(~ mes, labeller = as_labeller(c("3" = "Março", "12" = "Dezembro"))) +
-  scale_fill_manual(values = colorPalette)
+  scale_fill_manual(values = colorPalette) +
+  labs(x = "Partido", y = "Total Gasto") +
+  ggtitle("Total gasto por partido para cada tipo de despesa")
 ```
 
 Também podemos, visualizar o gráfico acima de forma proporcional:
@@ -186,16 +200,15 @@ dados_sum %>%
   ggplot(aes(x = partido, y = total, fill = descricao)) +
   geom_bar(position = "fill", stat = "identity") +
   facet_wrap(~ mes, labeller = as_labeller(c("3" = "Março", "12" = "Dezembro"))) +
-  scale_fill_manual(values = colorPalette)
+  scale_fill_manual(values = colorPalette) +
+  labs(x = "Partido", y = "Total Gasto") +
+  ggtitle("Total gasto por partido para cada tipo de despesa")
 ```
 
 Pelos gráficos acima, pode-se observar que, comparando-se os meses de Março e Dezembro: 
 
 * houve um aumento significativo nas despesas com _Divulgação da Atividade Parlamentar_;
 * diminuiram-se as despesas com _Passagens Aéreas_ e, de certa forma, _Locação Ou Fretamento de Veículos Automores_;
-
-A título de curiosidade, quero saber a quantidade de passagens aéreas compradas no mês de Março para todos os partido e quem foi o deputados que mais gastou com _Divulgação da Atividade Parlamentar_:
-
 
 #### b. Qual a correlação entre a cota por estado e o valor líquido? Ou seja, será que estados que tem maior cota necessariamente gastam mais?
 
@@ -205,30 +218,13 @@ dados_cota = read_csv2("dados/valor-cota-por-estado.csv") %>% rename(cota = valo
 glimpse(dados_cota)
 ```
 
-```{r, fig.width=10}
-dados_cota %>%
-  ggplot(aes(x=reorder(estado, cota), y=cota, fill=estado)) +
-  geom_bar(stat = "identity") +
-  geom_hline(yintercept = mean(dados_cota$cota))
-```
-
-```{r}
-dados_cota %>%
-  ggplot(aes(x= 0, y = cota)) +
-  geom_boxplot()
-```
-
-```{r}
-summary(dados_cota$cota)
-```
-
 Também será necessário, recarregar os dados de 2015 (para incluir os gastos de todos os partidos):
 ```{r}
 dados_2015 = dados %>%
   filter(ano == 2015)
 ```
 
-Antes de começar a responder a pergunta, vou criar um dataframe que conterá as principais informações para as respostas, me ajudando a respondê-las:
+Também vou criar um dataframe que conterá as principais informações para as respostas, me ajudando a respondê-las:
 ```{r}
 # numero de deputados por estado
 dados_dep_por_estado <- dados_2015 %>%
@@ -240,29 +236,69 @@ dados_gastos_por_estado <- dados_2015 %>%
   group_by(estado) %>%
   summarise(total_anual_gasto = sum(valor_liq)) 
 
-# valor total ganho e gasto por estado
+# valor total de cotas e gasto por estado
 dados_join <- left_join(dados_dep_por_estado, dados_cota, by = "estado") %>%
   mutate(total_anual_cotas = n_deputados*cota*12) %>%
   left_join(dados_gastos_por_estado, by = "estado")
 ```
 
-
-```{r, fig.width=10}
-dados_dep_por_estado %>%
-  ggplot(aes(x = reorder(estado, n_deputados), y = n_deputados, fill=estado)) +
-  geom_bar(stat = "identity")
-```
-
-```{r, fig.width=10}
-dados_gastos_por_estado %>%
-  ggplot(aes(x = reorder(estado, total_anual_gasto), y = total_anual_gasto, fill=estado)) +
-  geom_bar(stat = "identity")
+Vou começar com a análise descritivas das variáveis utilizadas, assim como na pergunta anterior. Vou começar visualizando a distribuição das cotas:
+```{r}
+dados_cota %>%
+  ggplot(aes(x= 0, y = cota)) +
+  geom_boxplot() +
+  labs(x = "", y = "Cota por deputado") +
+  ggtitle("Distribuição das cotas por estado (para cada deputado)")
 ```
 
 ```{r}
+summary(dados_cota$cota)
+```
+
+Pode-se ver que os deputados recebem entre R$30.790,00 e R$45.610,00. Além disso, a cota média (R$40.260,00) é próxima da mediana (R$40.880,00).
+
+Agora, estou curioso para saber a cota que cada deputado tem dependendo do estado:
+```{r, fig.width=12}
+dados_cota %>%
+  ggplot(aes(x=reorder(estado, cota), y=cota, fill=estado)) +
+  geom_bar(stat = "identity") +
+  geom_hline(yintercept = mean(dados_cota$cota)) +
+  labs(x = "Estado", y = "Cota por deputado") +
+  theme(legend.position = "none") +
+  ggtitle("Cota por estado (para cada deputado)")
+```
+
+Podemos ver que __o estado de RR é o estado com a maior cota para deputado, enquanto o DF é o estado com a menor cota.__
+
+Também quero saber a quantidade deputados por estado:
+```{r, fig.width=12}
+dados_dep_por_estado %>%
+  ggplot(aes(x = reorder(estado, n_deputados), y = n_deputados, fill=estado)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Estado", y= "Qtde. de deputados") +
+  theme(legend.position = "none") +
+  ggtitle("Quantidade de deputados por estado")
+```
+
+Pelo gráfico, __os estados de São Paulo, Rio de Janeiro e Minas Gerais são os estados com mais deputados no Brasil. Por outro lado, os estados do Amapá e Espírito Santo, juntamente com o Distrito Federal, possuem o menor número de deputados__.
+
+Por fim, quero analisar o valor total gasto por estado:
+```{r, fig.width=12}
+dados_gastos_por_estado %>%
+  ggplot(aes(x = reorder(estado, total_anual_gasto), y = total_anual_gasto, fill=estado)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Estado", y = "Total gasto") +
+  theme(legend.position = "none") +
+  ggtitle("Valor total gasto por estado")
+```
+
+
+```{r, fig.width=12}
 dados_join %>%
   ggplot(aes(x = total_anual_cotas, y = total_anual_gasto)) +
-  geom_point(aes(colour=estado))
+  geom_point(aes(colour=estado, size=n_deputados)) +
+  labs(x = "Total anual de cotas recebidas", y = "Total gasto anual") +
+  ggtitle("Relação entre o total de cotas recebidas e o total de gastos")
 ```
 
 ```{r}
@@ -272,17 +308,21 @@ cor(dados_join$total_anual_cotas, dados_join$total_anual_gasto, method='spearman
 ```
 
 
-```{r}
+```{r, fig.width=12}
 dados_join %>%
   ggplot(aes(x = n_deputados, y = total_anual_gasto)) +
-  geom_point(aes(colour = estado))
+  geom_point(aes(colour = estado, size=cota)) +
+  labs(x = "Qtde. de Deputados", y = "Total gasto anual") +
+  ggtitle("Relação entre quantidade de deputados e o total de gastos")
 ```
 
 ```{r, fig.width=12}
 dados_join %>%
   mutate(cota = total_anual_gasto / (n_deputados*12)) %>%
   ggplot(aes(x = reorder(estado, cota), y = cota)) +
-  geom_point(aes(colour = "Gasto médio por deputado (mês)")) +
-  geom_point(data = dados_cota, aes(colour="Cota por deputado (mês)"))
+  geom_point(aes(colour = "Gasto médio mensal por deputado", size=n_deputados)) +
+  geom_point(data = dados_cota, aes(colour="Cota mensal por deputado ")) +
+  labs(x = "Estado", y = "Cota por deputado") +
+  ggtitle("Relação entre a cota recebida e o gasto médio mensal")
 ```
 
