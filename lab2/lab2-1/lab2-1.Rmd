@@ -1,0 +1,80 @@
+---
+title: Revisitando uma visualização sua
+author:
+  - name: Arnaldo Gualberto
+    email: arnaldo.g12@gmail.com
+    affiliation: Federal University of Campina Grande
+bibliography: sigproc.bib
+output: rticles::acm_article
+---
+
+# Antes
+
+No checkpoint 1 do lab2, os objetivos são: praticar a crítica e concepção de visualizações; e explorar o processo de gerar figuras profissionais e prontas para a publicação. Logo, o gráfico abaixo é o que eu pretendo melhorar: 
+
+```{r echo=FALSE}
+library(dplyr, warn.conflicts = F)
+library(ggplot2)
+library(readr)
+library(stringr)
+library(rticles)
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust = 0.5))
+
+# paleta de cores
+colorPalette <- c("#000000", "#9D9D9D", "#FFFFFF", "#BE2633", "#E06F8B", "#493C2B", "#A46422", "#EB8931", "#F7E26B", "#2F484E", "#44891A", "#A3CE27", "#1B2632", "#005784", "#31A2F2", "#B2DCEF")
+```
+
+```{r echo=FALSE, message=FALSE}
+dados <- read_csv("../../lab1/dados/2015-2016-ate-mes-7.csv") %>%
+  select(partido = sgPartido, 
+         nome = txNomeParlamentar, 
+         estado = sgUF, 
+         descricao = txtDescricao, 
+         valor_liq = vlrLiquido, 
+         mes = numMes,
+         ano = numAno) %>%
+  filter(complete.cases(.)) %>%
+  mutate(descricao = ifelse(descricao == "Emissão Bilhete Aéreo", "PASSAGENS AÉREAS", descricao)) %>%
+  mutate(nome = str_to_title(nome)) %>%
+  mutate(descricao = str_to_title(descricao)) %>%
+  filter(valor_liq > 0)
+
+dados_2015 = dados %>%
+  filter(ano == 2015)
+
+# Sumariza os gastos totais dos 10 partidos que mais gastam
+dados_sum_top_10 = dados_2015 %>%
+  group_by(partido) %>% 
+  summarise(total = sum(valor_liq)) %>%
+  top_n(10, total)
+
+# Pega os dados somentes dos 10 partidos que mais gastam
+dados_2015 <- dados_2015 %>%
+  filter(partido %in% dados_sum_top_10$partido)
+```
+
+```{r echo=FALSE, fig.width=12, warning=FALSE, message=FALSE}
+dados_sum <- dados_2015 %>%
+  group_by(partido, mes, descricao) %>%
+  filter(mes == 3) %>%
+  summarise(total = sum(valor_liq))
+
+p = dados_sum %>%
+  ggplot(aes(x = partido, y = total, fill = descricao)) +
+  geom_bar(position = "stack", stat = "identity") +
+  scale_fill_manual(values = colorPalette) +
+  labs(x = "Partido", y = "Total Gasto") +
+  ggtitle("Total gasto por partido para cada tipo de despesa")
+
+print(p) # ggsave precisa que a figura tenha sido impressa em um dispositivo de saída antes
+#ggsave("figura1.pdf", width = 12)
+```
+
+# Depois
+
+```{r echo=FALSE, fig.width=12}
+
+```
+
