@@ -10,8 +10,6 @@ output: rticles::acm_article
 
 # Antes
 
-No checkpoint 1 do lab2, os objetivos são: praticar a crítica e concepção de visualizações; e explorar o processo de gerar figuras profissionais e prontas para a publicação. Logo, o gráfico abaixo é o que eu pretendo melhorar: 
-
 ```{r echo=FALSE}
 library(dplyr, warn.conflicts = F)
 library(ggplot2)
@@ -55,6 +53,10 @@ dados_2015 <- dados_2015 %>%
   filter(partido %in% dados_sum_top_10$partido)
 ```
 
+No checkpoint 1 do lab2, os objetivos são: praticar a crítica e concepção de visualizações; e explorar o processo de gerar figuras profissionais e prontas para a publicação. 
+
+Portanto, o gráfico abaixo é o que eu pretendo melhorar (gerado por mim no checkpoint 4 do lab1). O objetivo dele é comparar a distribuição das despesas por partido, ou seja, saber quais as despesas os partidos mais gastam verba. Nesse caso, saber o valor gasto por cada despesa não é prioridade.
+
 ```{r echo=FALSE, fig.width=12, warning=FALSE, message=FALSE}
 dados_sum <- dados_2015 %>%
   group_by(partido, mes, descricao) %>%
@@ -72,7 +74,11 @@ print(p) # ggsave precisa que a figura tenha sido impressa em um dispositivo de 
 #ggsave("figura1.pdf", width = 12)
 ```
 
+O gráfico acima apresenta erros visuais e dificuldades de análise. O principal erro visual é talvez a paleta de cores, sendo difícil diferenciar certas categorias. Ainda, é difícil ler o conteúdo das legendas, dificultando a interpretação. Para melhorar a análise, podia ter ordenado as barras pelos partidos que mais gastam em ordem crescente/decrescente, ou talvez plotado o gráfico no modo _fill_, visualizando proporcionalmente cada despesa.
+
 # Depois
+
+Na tentativa de melhorar o gráfico acima, resolvi alterar suas marcas e canais. Como o gráfico possui 3 variáveis, sendo 2 discretas (descrição e partido) e uma contínua (total gasto), resolvi plotar o mesmo gráfico na forma de heatmap. Assim, o gráfico fica da seguinte forma:
 
 ```{r echo=FALSE, fig.width=6, fig.height=4}
 dados_sum = dados_2015 %>% 
@@ -81,25 +87,14 @@ dados_sum = dados_2015 %>%
 
 dados_sum %>%
   ggplot(aes(x = partido, y = reorder(descricao, total), fill=total)) +
-  geom_raster() +
+  geom_tile() +
   scale_fill_continuous(na.value = "white", low="yellow", high="red") +
   theme(panel.background = element_rect(fill = "white", colour = "white")) +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle=90)) +
-  ylab("")
+  labs(x="", y="")
 ```
 
-```{r echo=FALSE, fig.height=12}
-dados_sum = dados_2015 %>% 
-  group_by(partido, descricao) %>% 
-  summarise(total = sum(valor_liq))
+O gráfico acima mostra as despesas em ordem decrescente separadas por partido. Agora, é possível perceber de forma clara que _Passagens Aéreas_ e _Divulgação da Atividade Parlamentar_ são as despesas que os deputados mais gastam dinheiro, em especial os partidos PMDB e PT. Também pode-se observar que o PP e o PTB são os únicos partidos que gastam com _Participação em Curso, Palestra ou Evento Similar_. Em compensação, os mesmos partidos não gastam verba como _Locação ou Fretamento de Embarcações_. Também é notório que alguns partidos não consomem certas despesas (quadrados brancos), o que é extremamente difícil analisar no gráfico anterior. Por fim, há de se perceber pelo gráfico que existem 7 tipos de despesas que os partidos mais gastam (de _Passagens Aéreas_ a _Telefonia_).
 
-dados_sum %>%
-  ggplot(aes(x = partido, y = total, fill = descricao, group = 1)) +
-  geom_line(aes(colour = descricao)) +
-  facet_grid(descricao ~ ., scale="free") +
-  theme(legend.position = "none")
-  #theme(axis.text.x = element_text(angle = 90))
-
-```
-
+O gráfico acima ainda podia ser melhorado renomeando a descrição das despesas para nomes mais curtos e colocando o valor gasto em cada célula do heatmap (em milhões de reais com uma casa decimal). Isso aumentaria a área util do heatmap e permitiria saber o valor gasto. Porém, isso não foi feito para fins de legibilidade e para manter as descrições originais.
