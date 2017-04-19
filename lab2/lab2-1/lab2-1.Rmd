@@ -74,7 +74,32 @@ print(p) # ggsave precisa que a figura tenha sido impressa em um dispositivo de 
 
 # Depois
 
-```{r echo=FALSE, fig.width=12}
+```{r echo=FALSE, fig.width=6, fig.height=4}
+dados_sum = dados_2015 %>% 
+  group_by(partido, descricao) %>% 
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = partido, y = reorder(descricao, total), fill=total)) +
+  geom_raster() +
+  scale_fill_continuous(na.value = "white", low="yellow", high="red") +
+  theme(panel.background = element_rect(fill = "white", colour = "white")) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle=90)) +
+  ylab("")
+```
+
+```{r echo=FALSE, fig.height=12}
+dados_sum = dados_2015 %>% 
+  group_by(partido, descricao) %>% 
+  summarise(total = sum(valor_liq))
+
+dados_sum %>%
+  ggplot(aes(x = partido, y = total, fill = descricao, group = 1)) +
+  geom_line(aes(colour = descricao)) +
+  facet_grid(descricao ~ ., scale="free") +
+  theme(legend.position = "none")
+  #theme(axis.text.x = element_text(angle = 90))
 
 ```
 
