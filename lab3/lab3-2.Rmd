@@ -1,0 +1,114 @@
+---
+title: "Lab 3 - Checkpoint 2 "
+author: "Anônimo"
+date: "27/04/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 0. Imports and Settings
+```{r}
+library(ggplot2)
+library(dplyr, warn.conflicts=FALSE)
+library(readr)
+library(knitr)
+source('multiplot.R')
+```
+
+Primeiramente, vou carregar os dados:
+
+```{r, message=FALSE}
+dados <- read_csv('data/movie_metadata.csv')
+glimpse(dados)
+```
+
+Falar sobre valores faltando, como removi eles e os dados que selecionei (lista com marcadores).
+
+```{r}
+dados_usa = dados %>%
+  filter(country == 'USA') %>%
+  filter(complete.cases(.)) %>%
+  select(filme = movie_title, ator_principal = actor_1_name, bilheteria = gross, orcamento = budget, duracao = duration, avaliacao = imdb_score, likes_filme = movie_facebook_likes, likes_ator = actor_1_facebook_likes)
+head(dados_usa)
+```
+
+# 1. Análise Descritiva
+
+```{r}
+summary(dados_usa)
+```
+
+```{r}
+dados_usa %>%
+  filter(likes_ator == max(likes_ator))
+```
+
+```{r}
+dados_usa %>%
+  filter(likes_filme == max(likes_filme))
+```
+
+```{r}
+dados_usa %>%
+  filter(bilheteria == max(bilheteria))
+```
+
+```{r}
+dados_usa %>%
+  filter(orcamento == max(orcamento))
+```
+
+```{r}
+dados_usa %>%
+  filter(avaliacao == max(avaliacao))
+```
+
+```{r}
+dados_usa %>%
+  filter(duracao == max(duracao))
+```
+
+
+```{r, fig.width=12, fig.height=6}
+dados_usa %>%
+  select(-filme, -ator_principal) %>%
+  GGally::ggpairs()
+```
+
+```{r, fig.width=12}
+plot_bil <- dados_usa %>%
+  ggplot(aes(x = 0, y = bilheteria)) +
+  geom_point(position = position_jitter(width=0.3)) +
+  scale_y_log10()
+
+plot_orc <- dados_usa %>%
+  ggplot(aes(x = 0, y = orcamento)) +
+  geom_point(position = position_jitter(width=0.3))
+
+plot_dur <- dados_usa %>%
+  ggplot(aes(x = 0, y = duracao)) +
+  geom_point(position = position_jitter(width=0.3))
+
+plot_ava <- dados_usa %>% 
+  ggplot(aes(x = 0, y = avaliacao)) +
+  geom_point(position = position_jitter(width=0.3))
+
+plot_lf <- dados_usa %>% 
+  ggplot(aes(x = 0, y = likes_filme)) +
+  geom_point(position = position_jitter(width=0.3))
+
+plot_la <- dados_usa %>% 
+  ggplot(aes(x = 0, y = likes_ator)) +
+  geom_point(position = position_jitter(width=0.3))
+
+multiplot(plot_bil, plot_orc, plot_dur, plot_ava, plot_lf, plot_la,  cols = 2)
+```
+
+
+
+
+
+
