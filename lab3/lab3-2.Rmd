@@ -11,10 +11,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # 0. Imports and Settings
 ```{r}
-library(ggplot2)
+library(cluster)
 library(dplyr, warn.conflicts=FALSE)
-library(readr)
+library(GGally)
+library(ggplot2)
 library(knitr)
+library(readr)
+library(tibble)
+library(tidyverse, warn.conflicts = FALSE)
 source('multiplot.R')
 ```
 
@@ -29,9 +33,11 @@ Falar sobre valores faltando, como removi eles e os dados que selecionei (lista 
 
 ```{r}
 dados_usa = dados %>%
+  filter(!duplicated(dados$movie_title)) %>%
   filter(country == 'USA') %>%
   filter(complete.cases(.)) %>%
   select(filme = movie_title, ator_principal = actor_1_name, bilheteria = gross, orcamento = budget, duracao = duration, avaliacao = imdb_score, likes_filme = movie_facebook_likes, likes_ator = actor_1_facebook_likes)
+
 head(dados_usa)
 ```
 
@@ -107,8 +113,50 @@ plot_la <- dados_usa %>%
 multiplot(plot_bil, plot_orc, plot_dur, plot_ava, plot_lf, plot_la,  cols = 2)
 ```
 
+# 2. Clusterização
 
+```{r}
+distancias.long <- dados_usa %>%
+  select(avaliacao) %>%
+  dist(method = "euclidean")
 
+agrupamento_hs <- dados_usa %>%
+  column_to_rownames("filme") %>%
+  select(avaliacao) %>%
+  mutate_all(funs(scale)) %>%
+  dist(method = "euclidean") %>%
+  hclust(method = "complete")
 
+plot(silhouette(cutree(agrupamento_hs, k = 10), distancias.long))
+```
 
+```{r}
+agrupamento_hs <- dados_usa %>%
+  select(-ator_principal) %>%
+  column_to_rownames("filme") %>%
+  dist(method = "euclidean") %>%
+  hclust(method = "ward.D")
+
+filmes = dados_usa %>%
+  select(-filme, -ator_principal)
+
+atribuicoes = tibble(k = 1:5) %>% 
+    group_by(k) %>% 
+    do(cbind(filmes, grupo = as.character(cutree(agrupamento_hs, .$k)))) 
+
+atribuicoes_long = atribuicoes %>% 
+    mutate(bilheteria = scale(bilheteria), 
+           orcamento = scale(orcamento),
+           duracao = scale(duracao),
+           likes_filme = scale(likes_filme), 
+           likes_ator = scale(likes_ator),
+           avaliacao = scale(avaliacao)) %>% 
+    gather(key = "variavel", value = "valor", -k, -grupo, -avaliacao, -likes_filme, -likes_ator, -duracao) 
+
+atribuicoes_long %>% 
+    ggplot(aes(x = variavel, y = valor, group = grupo, colour = grupo)) + 
+    geom_point(alpha = .4, position = position_dodge(width = .5)) + 
+    facet_wrap(~ paste(k, " grupos")) + 
+    labs(x = "", y = "z-score")
+```
 
