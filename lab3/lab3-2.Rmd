@@ -34,9 +34,9 @@ Falar sobre valores faltando, como removi eles e os dados que selecionei (lista 
 ```{r}
 dados_usa = dados %>%
   filter(!duplicated(dados$movie_title)) %>%
-  filter(country == 'USA') %>%
+  filter(country == 'USA' & actor_1_name == "Nicolas Cage") %>%
   filter(complete.cases(.)) %>%
-  select(filme = movie_title, ator_principal = actor_1_name, bilheteria = gross, orcamento = budget, duracao = duration, avaliacao = imdb_score, likes_filme = movie_facebook_likes, likes_ator = actor_1_facebook_likes)
+  select(filme = movie_title, bilheteria = gross, orcamento = budget, duracao = duration, avaliacao = imdb_score, likes_filme = movie_facebook_likes, likes_diretor = director_facebook_likes)
 
 head(dados_usa)
 ```
@@ -80,7 +80,7 @@ dados_usa %>%
 
 ```{r, fig.width=12, fig.height=6}
 dados_usa %>%
-  select(-filme, -ator_principal) %>%
+  select(-filme) %>%
   GGally::ggpairs()
 ```
 
@@ -107,7 +107,7 @@ plot_lf <- dados_usa %>%
   geom_point(position = position_jitter(width=0.3))
 
 plot_la <- dados_usa %>% 
-  ggplot(aes(x = 0, y = likes_ator)) +
+  ggplot(aes(x = 0, y = likes_diretor)) +
   geom_point(position = position_jitter(width=0.3))
 
 multiplot(plot_bil, plot_orc, plot_dur, plot_ava, plot_lf, plot_la,  cols = 2)
@@ -127,31 +127,36 @@ agrupamento_hs <- dados_usa %>%
   dist(method = "euclidean") %>%
   hclust(method = "complete")
 
-plot(silhouette(cutree(agrupamento_hs, k = 10), distancias.long))
+plot(silhouette(cutree(agrupamento_hs, k = 4), distancias.long))
 ```
 
 ```{r}
 agrupamento_hs <- dados_usa %>%
-  select(-ator_principal) %>%
-  column_to_rownames("filme") %>%
+  select(-filme) %>%
+  mutate(bilheteria = scale(bilheteria), 
+           orcamento = scale(orcamento),
+           duracao = scale(duracao),
+           likes_filme = scale(likes_filme), 
+           likes_diretor = scale(likes_diretor),
+           avaliacao = scale(avaliacao)) %>%
   dist(method = "euclidean") %>%
   hclust(method = "complete")
 
 filmes = dados_usa %>%
-  select(-filme, -ator_principal)
-
-atribuicoes = tibble(k = 1:6) %>% 
-    group_by(k) %>% 
-    do(cbind(filmes, grupo = as.character(cutree(agrupamento_hs, .$k)))) 
-
-atribuicoes_long = atribuicoes %>% 
-    mutate(bilheteria = scale(bilheteria), 
+  select(-filme) %>%
+  mutate(bilheteria = scale(bilheteria), 
            orcamento = scale(orcamento),
            duracao = scale(duracao),
            likes_filme = scale(likes_filme), 
-           likes_ator = scale(likes_ator),
-           avaliacao = scale(avaliacao)) %>% 
-    gather(key = "variavel", value = "valor", -k, -grupo, -avaliacao, -likes_filme, -likes_ator, -duracao) 
+           likes_diretor = scale(likes_diretor),
+           avaliacao = scale(avaliacao))
+
+atribuicoes = tibble(k = 1:4) %>% 
+    group_by(k) %>% 
+    do(cbind(filmes, grupo = as.character(cutree(agrupamento_hs, .$k))))
+
+atribuicoes_long = atribuicoes %>% 
+    gather(key = "variavel", value = "valor", -k, -grupo) 
 
 atribuicoes_long %>% 
     ggplot(aes(x = variavel, y = valor, group = grupo, colour = grupo)) + 
@@ -161,16 +166,38 @@ atribuicoes_long %>%
 ```
 
 ```{r}
-atribuicoes_long = atribuicoes %>% 
-    mutate(bilheteria = scale(bilheteria), 
+filmes = dados_usa %>%
+  select(-filme) %>%
+  mutate(bilheteria = scale(bilheteria), 
            orcamento = scale(orcamento),
            duracao = scale(duracao),
            likes_filme = scale(likes_filme), 
-           likes_ator = scale(likes_ator),
-           avaliacao = scale(avaliacao)) %>%
-    gather(key = "variavel", value = "valor", -k, -bilheteria, -orcamento, -avaliacao, -likes_ator, -likes_filme, -duracao) 
+           likes_diretor = scale(likes_diretor),
+           avaliacao = scale(avaliacao))
 
-atribuicoes_long %>% 
-  filter(k==1) %>%
-  ggparcoord(columns = c(2:7), groupColumn = "k")
+agrupamento_hs <- filmes %>%
+  dist(method = "euclidean") %>%
+  hclust(method = "complete")
+
+atribuicoes = tibble(k = 1:3) %>% 
+    group_by(k) %>% 
+    do(cbind(filmes, grupo = as.character(cutree(agrupamento_hs, .$k))))
+
+atribuicoes %>% 
+  ggparcoord(columns = c(2:7), groupColumn="grupo") +
+  facet_grid(paste(k, " grupos") ~ .)
+
 ```
+
+```{r}
+data(diamonds, package="ggplot2")
+diamonds.samp <- diamonds[sample(1:dim(diamonds)[1], 100), ]
+
+# basic parallel coordinate plot, using default settings
+ggparcoord(data = diamonds.samp, columns = c(1, 5:10))
+
+# this time, color by diamond cut
+ggparcoord(data = diamonds.samp, columns = c(1, 5:10), groupColumn = 2)
+
+```
+
