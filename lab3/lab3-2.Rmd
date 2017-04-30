@@ -135,12 +135,12 @@ agrupamento_hs <- dados_usa %>%
   select(-ator_principal) %>%
   column_to_rownames("filme") %>%
   dist(method = "euclidean") %>%
-  hclust(method = "ward.D")
+  hclust(method = "complete")
 
 filmes = dados_usa %>%
   select(-filme, -ator_principal)
 
-atribuicoes = tibble(k = 1:5) %>% 
+atribuicoes = tibble(k = 1:6) %>% 
     group_by(k) %>% 
     do(cbind(filmes, grupo = as.character(cutree(agrupamento_hs, .$k)))) 
 
@@ -160,3 +160,17 @@ atribuicoes_long %>%
     labs(x = "", y = "z-score")
 ```
 
+```{r}
+atribuicoes_long = atribuicoes %>% 
+    mutate(bilheteria = scale(bilheteria), 
+           orcamento = scale(orcamento),
+           duracao = scale(duracao),
+           likes_filme = scale(likes_filme), 
+           likes_ator = scale(likes_ator),
+           avaliacao = scale(avaliacao)) %>%
+    gather(key = "variavel", value = "valor", -k, -bilheteria, -orcamento, -avaliacao, -likes_ator, -likes_filme, -duracao) 
+
+atribuicoes_long %>% 
+  filter(k==1) %>%
+  ggparcoord(columns = c(2:7), groupColumn = "k")
+```
