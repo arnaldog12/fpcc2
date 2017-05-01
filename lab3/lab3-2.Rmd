@@ -127,8 +127,7 @@ Para finalizar minha análise descritiva, quero observar a distribuição dos 20
 ```{r, fig.width=12}
 plot_bil <- dados_usa %>%
   ggplot(aes(x = 0, y = bilheteria)) +
-  geom_point(position = position_jitter(width=0.3)) +
-  scale_y_log10()
+  geom_point(position = position_jitter(width=0.3))
 
 plot_orc <- dados_usa %>%
   ggplot(aes(x = 0, y = orcamento)) +
@@ -153,9 +152,19 @@ plot_la <- dados_usa %>%
 multiplot(plot_bil, plot_orc, plot_dur, plot_ava, plot_lf, plot_la,  cols = 2)
 ```
 
+Os gráficos acima apresentam pontos interessantes:
+
+- Os dados de _bilheteria_, _orçamento_, *likes_ator* e *likes_filme* se concentram, em sua maioria, na base do gráfico;
+- Em geral, a média de _duração_ dos filmes é aproximadamente 100 minutos (como verificado na sumarização dos dados);
+- Os dados de _avaliação_ são visualmente os mais dispersos, variando por todo o gráfico, mas com uma concentração maior entre 5,0 e 7,5.
+
+Pela distribuição dos dados acima, eu arriscaria dizer que existem de 2 a 4 grupos de filmes diferentes. Vamos verificar isso na próxima seção.
+
 # 2. Clusterização
 
-```{r, fig.width=12}
+Agora vou dar início ao agrupamento (clusterização) dos dados. Antes de mais nada, vou efetuar a __padronização__ dos dados:
+
+```{r}
 filmes = dados_usa %>%
   select(-filme, -ator) %>%
   mutate(bilheteria = scale(bilheteria),
@@ -164,14 +173,18 @@ filmes = dados_usa %>%
            likes_filme = scale(likes_filme),
            likes_ator = scale(likes_ator),
            avaliacao = scale(avaliacao))
+```
 
+O primeiro algoritmo de clusterização que vou utilizar é a __clusterização hierárquica__. Empiricamente, escolhi o método __ward.D2__ e a __distância euclideana__. Além disso, defini clusterizar os dados em __3 grupos diferentes__, pois vi que essa combinação de parâmetros geraram grupos melhores. 
+
+```{r, fig.width=12}
 agrupamento_hs <- filmes %>%
   dist(method = "euclidean") %>%
   hclust(method = "ward.D2")
 
 atribuicoes <- tibble(k = 1:3) %>%
     group_by(k) %>%
-    do(cbind(filmes, grupo = as.character(cutree(agrupamento_hs, .$k))))
+    do(cbind(filmes, grupo = cutree(agrupamento_hs, .$k)))
 
 atribuicoes_long = atribuicoes %>%
     gather(key = "variavel", value = "valor", -k, -grupo)
@@ -180,26 +193,30 @@ atribuicoes_long %>%
     ggplot(aes(x = variavel, y = valor, group = grupo, colour = grupo)) +
     geom_point(alpha = .4, position = position_dodge(width = .5)) +
     facet_grid(paste(grupo, " grupos") ~ .) +
-    labs(x = "", y = "z-score")
+    labs(x = "", y = "z-score") +
+    theme(legend.position = "none")
 ```
 
+Também podemos visualizar o gráfico acima com coordenadas paralelas:
 
 ```{r, fig.width=12}
 atribuicoes %>%
   ggparcoord(columns = c(2:7), groupColumn="grupo") +
-  facet_grid(paste(grupo, " grupos") ~ .)
+  facet_grid(paste(grupo, " grupos") ~ .) +
+  theme(legend.position = "none")
 ```
 
-```{r, fig.width=12}
-filmes = dados_usa %>%
-  select(-filme, -ator) %>%
-  mutate(bilheteria = scale(bilheteria),
-           orcamento = scale(orcamento),
-           duracao = scale(duracao),
-           likes_filme = scale(likes_filme),
-           likes_ator = scale(likes_ator),
-           avaliacao = scale(avaliacao))
+É importante notar que as variáveis (eixo x) estão distribuidas diferentemente nos dois gráficos. Entrentanto, acredito que podemos diferenciar os 3 grupos da seguinte forma:
 
+1. filmes de alta bilheteria, alto orçamento, longa duração, muitas curtidas no facebook e atores renomados;
+2. filmes de bilheteria média, médio orçamento, longa duração, certas curtidas no facebook e atores renomados;
+3. filmes de baixa bilheteria, baixo orçamento, curta duração, baixa avaliação, poucas curtidas no facebook e atores desconhecidos;
+
+Vale salientar que a _avaliação_ não influenciou diretamente nos dois primeiros grupos, já que eles apresentam avaliações semelhantes.
+
+Vamos agora utilizar o algoritmo __K-Means__. Resolvi também utilizar 3 grupos para poder comparar os dois algoritmos.
+
+```{r, fig.width=12}
 km <- filmes %>%
   kmeans(centers = 3, nstart=10)
 
@@ -207,5 +224,14 @@ filmes$kmcluster = km$cluster
 
 filmes %>%
   ggparcoord(columns = c(1:6), groupColumn="kmcluster") +
-  facet_grid(paste(kmcluster, " grupos") ~ .)
+  facet_grid(paste(kmcluster, " grupos") ~ .) +
+  theme(legend.position = "none")
 ```
+
+De acordo com o gráfico, podemos dizer que os 3 grupos se caracterizam da seguinte forma:
+
+1. Filme de baixa bilheteria, baixo orçamento, longa duração, boa avaliação, certas curtidas no facebook e atores renomados;
+2. Filme de baixa bilheteria, baixo orçamento, curta duração, baixa avaliação, poucas curtidas no facebook e atores desconhecidos;
+3. Filmes de alta bilheteria, alto orçamento, longa duração, média avaliação, muitas curtidas no facebook e atores renomados;
+
+Corrigir titulo dos gráficos (1 grupo, 2 grupos, 3 grupos -> Grupo 1, grupo 2, grupo 3,...)
