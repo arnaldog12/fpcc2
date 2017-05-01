@@ -9,8 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+O objetivo do Lab 3 é tentar agrupar dados de filmes. Para essa análise, eu utilizei essa [base de dados](https://www.kaggle.com/deepmatrix/imdb-5000-movie-dataset). Detalhes sobre os dados podem ser encontrados na própria página.
+
 # 0. Imports and Settings
-```{r}
+```{r, message=FALSE}
 library(cluster)
 library(dplyr, warn.conflicts=FALSE)
 library(GGally)
@@ -29,7 +31,19 @@ dados <- read_csv('data/movie_metadata.csv')
 glimpse(dados)
 ```
 
-Falar sobre valores faltando, como removi eles e os dados que selecionei (lista com marcadores).
+De acordo com a saída do código R, podemos ver que existem alguns dados faltando. Como são apenas 4, resolvi descartá-los. Também vou analisar somentes os dados dos filmes dos Estados Unidos. Por fim, também vou descartar os filmes com título duplicado e selecionar as colunas que me interessam, são elas:
+
+- __gross__: bilheteria arrecadada pelo filme;
+- __budget__: orçamento gasto para produção do filme;
+- __imdb_score__: avaliação média dos usuários do IMBD;
+- __duration__: duração do filme (em minutos);
+- __movie_facebook_likes__: quantidade de likes do filme na página do facebook;
+- __actor_1_facebook_likes__: quantidade de likes do ator no facebook;
+
+Além dessas colunas, também resolvi extrair outras que podem ser interessantes na análise final do agrupamento, são elas:
+
+- __movie_title__: representa o título do filme;
+- __actor_1_name__: nome do ator principal;
 
 ```{r}
 dados_usa = dados %>%
@@ -38,51 +52,77 @@ dados_usa = dados %>%
   filter(complete.cases(.)) %>%
   select(filme = movie_title, ator = actor_1_name, bilheteria = gross, orcamento = budget, duracao = duration, avaliacao = imdb_score, likes_filme = movie_facebook_likes, likes_ator = actor_1_facebook_likes)
 
-head(dados_usa)
+head(dados_usa) %>% kable()
 ```
+
+Ao todo, após as filtragens, temos dados sobre __2097 filmes dos Estados Unidos__.
 
 # 1. Análise Descritiva
 
+Vou iniciar a análise descritiva analisando a sumarização dos dados:
+
 ```{r}
-summary(dados_usa)
+dados_usa %>%
+  select(-filme, -ator) %>%
+  summary() %>% 
+  kable()
+```
+
+Pode-se perceber que _avaliação_ e _duração_ do filme são as variáveis com menor range, ou seja, que menos variam em comparação com as outras variáveis. _Bilheteria_ e _orçamento_ apresentam enormes variações, com valores máximo e mínimo bem distante das média e mediana. Logo, mais para frente, deveremos tratar esses valores para que o agrupamento não seja totalmente influenciado por essas variáveis.
+
+A título de curiosidade, quero saber quais são os filmes cujo cada variável que eu escolhi para análise apresenta seu valor máximo:
+
+```{r}
+dados_usa %>%
+  filter(likes_ator == max(likes_ator)) %>%
+  kable()
 ```
 
 ```{r}
 dados_usa %>%
-  filter(likes_ator == max(likes_ator))
+  filter(likes_filme == max(likes_filme)) %>%
+  kable()
 ```
 
 ```{r}
 dados_usa %>%
-  filter(likes_filme == max(likes_filme))
+  filter(bilheteria == max(bilheteria)) %>%
+  kable()
 ```
 
 ```{r}
 dados_usa %>%
-  filter(bilheteria == max(bilheteria))
+  filter(orcamento == max(orcamento)) %>%
+  kable()
 ```
 
 ```{r}
 dados_usa %>%
-  filter(orcamento == max(orcamento))
+  filter(avaliacao == max(avaliacao)) %>%
+  kable()
 ```
 
 ```{r}
 dados_usa %>%
-  filter(avaliacao == max(avaliacao))
+  filter(duracao == max(duracao)) %>%
+  kable()
 ```
 
-```{r}
-dados_usa %>%
-  filter(duracao == max(duracao))
-```
+Podemos perceber que __Avatar__ é o filme que mais arrecadou bilheteria nos EUA, enquanto __Piratas do Caribe: o fim do mundo__ foi o filme que mais gastou-se para ser produzido. Além disso, o filme mais bem avaliado pelos usuários do IMDB é __The Shawshank Redemption__ (em português, _Um sonho de liberdade_). Pelos dados do facebook utilizados, o filme __Interstellar__ e a atriz __Darcy Donavam__ são o filme e a atriz com mais curtidas, respectivamente. Finalmente, __Blood In, Blood Out__ é o longa-metragem mais longo dos EUA, com aproximadamente 5h30min de duração.
 
+Quero analisar agora a distribuição de cada variável individualmente e em pares. Para isso, vou utilzar _ggpairs_ do módulo _GGally_:
 
 ```{r, fig.width=12, fig.height=6}
 dados_usa %>%
   select(-filme, -ator) %>%
   GGally::ggpairs()
 ```
+
+Pelo gráfico acima, ao analisar as distribuições de cada variável (diagona principal), podemos perceber que quase todas apresentam uma concentração à esquerda, exceto a variável _avaliação_.
+
+Também podemos observar que praticamente todas as variáveis utilizadas apresentam pouca correlação entre si. De fato, apenas _orçamento_ e _bilheteria_, apresentam um correlação mais forte (0.637). Isso indica, de certa forma, que quanto mais se gasta para produzir um filme, maior é o retorno na bilheteria.
+
+Para finalizar minha análise descritiva, quero observar a distribuição dos 2097 filmes de acordo com cada variável:
 
 ```{r, fig.width=12}
 plot_bil <- dados_usa %>%
@@ -98,15 +138,15 @@ plot_dur <- dados_usa %>%
   ggplot(aes(x = 0, y = duracao)) +
   geom_point(position = position_jitter(width=0.3))
 
-plot_ava <- dados_usa %>% 
+plot_ava <- dados_usa %>%
   ggplot(aes(x = 0, y = avaliacao)) +
   geom_point(position = position_jitter(width=0.3))
 
-plot_lf <- dados_usa %>% 
+plot_lf <- dados_usa %>%
   ggplot(aes(x = 0, y = likes_filme)) +
   geom_point(position = position_jitter(width=0.3))
 
-plot_la <- dados_usa %>% 
+plot_la <- dados_usa %>%
   ggplot(aes(x = 0, y = likes_ator)) +
   geom_point(position = position_jitter(width=0.3))
 
@@ -118,10 +158,10 @@ multiplot(plot_bil, plot_orc, plot_dur, plot_ava, plot_lf, plot_la,  cols = 2)
 ```{r, fig.width=12}
 filmes = dados_usa %>%
   select(-filme, -ator) %>%
-  mutate(bilheteria = scale(bilheteria), 
+  mutate(bilheteria = scale(bilheteria),
            orcamento = scale(orcamento),
            duracao = scale(duracao),
-           likes_filme = scale(likes_filme), 
+           likes_filme = scale(likes_filme),
            likes_ator = scale(likes_ator),
            avaliacao = scale(avaliacao))
 
@@ -129,8 +169,8 @@ agrupamento_hs <- filmes %>%
   dist(method = "euclidean") %>%
   hclust(method = "ward.D2")
 
-atribuicoes <- tibble(k = 1:3) %>% 
-    group_by(k) %>% 
+atribuicoes <- tibble(k = 1:3) %>%
+    group_by(k) %>%
     do(cbind(filmes, grupo = as.character(cutree(agrupamento_hs, .$k))))
 
 atribuicoes_long = atribuicoes %>%
@@ -145,7 +185,7 @@ atribuicoes_long %>%
 
 
 ```{r, fig.width=12}
-atribuicoes %>% 
+atribuicoes %>%
   ggparcoord(columns = c(2:7), groupColumn="grupo") +
   facet_grid(paste(grupo, " grupos") ~ .)
 ```
@@ -153,10 +193,10 @@ atribuicoes %>%
 ```{r, fig.width=12}
 filmes = dados_usa %>%
   select(-filme, -ator) %>%
-  mutate(bilheteria = scale(bilheteria), 
+  mutate(bilheteria = scale(bilheteria),
            orcamento = scale(orcamento),
            duracao = scale(duracao),
-           likes_filme = scale(likes_filme), 
+           likes_filme = scale(likes_filme),
            likes_ator = scale(likes_ator),
            avaliacao = scale(avaliacao))
 
@@ -165,7 +205,7 @@ km <- filmes %>%
 
 filmes$kmcluster = km$cluster
 
-filmes %>% 
+filmes %>%
   ggparcoord(columns = c(1:6), groupColumn="kmcluster") +
   facet_grid(paste(kmcluster, " grupos") ~ .)
 ```
