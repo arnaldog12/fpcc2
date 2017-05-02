@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-O objetivo do Lab 3 é tentar agrupar dados de filmes. Para essa análise, eu utilizei essa [base de dados](https://www.kaggle.com/deepmatrix/imdb-5000-movie-dataset). Detalhes sobre os dados podem ser encontrados na própria página.
+O objetivo do Lab 3 é tentar agrupar dados de filmes utilizando algoritmos de agrupamento. Para essa análise, eu utilizei essa [base de dados](https://www.kaggle.com/deepmatrix/imdb-5000-movie-dataset). Mais detalhes sobre os dados podem ser encontrados na própria página.
 
 # 0. Imports and Settings
 ```{r, message=FALSE}
@@ -24,7 +24,7 @@ library(tidyverse, warn.conflicts = FALSE)
 source('multiplot.R')
 ```
 
-Primeiramente, vou carregar os dados:
+Primeiramente, vou carregar os dados que vou utilizar para análise:
 
 ```{r, message=FALSE}
 dados <- read_csv('data/movie_metadata.csv')
@@ -118,7 +118,7 @@ dados_usa %>%
   GGally::ggpairs()
 ```
 
-Pelo gráfico acima, ao analisar as distribuições de cada variável (diagona principal), podemos perceber que quase todas apresentam uma concentração à esquerda, exceto a variável _avaliação_.
+Pelo gráfico acima, ao analisar as distribuições de cada variável (diagona principal), podemos perceber que quase todas apresentam uma concentração à esquerda com cauda longa à direita, exceto a variável _avaliação_.
 
 Também podemos observar que praticamente todas as variáveis utilizadas apresentam pouca correlação entre si. De fato, apenas _orçamento_ e _bilheteria_, apresentam um correlação mais forte (0.637). Isso indica, de certa forma, que quanto mais se gasta para produzir um filme, maior é o retorno na bilheteria.
 
@@ -156,7 +156,7 @@ Os gráficos acima apresentam pontos interessantes:
 
 - Os dados de _bilheteria_, _orçamento_, *likes_ator* e *likes_filme* se concentram, em sua maioria, na base do gráfico;
 - Em geral, a média de _duração_ dos filmes é aproximadamente 100 minutos (como verificado na sumarização dos dados);
-- Os dados de _avaliação_ são visualmente os mais dispersos, variando por todo o gráfico, mas com uma concentração maior entre 5,0 e 7,5.
+- Os dados de _avaliação_ são visualmente os mais dispersos, variando disformemente por todo o gráfico, mas com uma concentração maior entre 5,0 e 7,5.
 
 Pela distribuição dos dados acima, eu arriscaria dizer que existem de 2 a 4 grupos de filmes diferentes. Vamos verificar isso na próxima seção.
 
@@ -175,7 +175,11 @@ filmes = dados_usa %>%
            avaliacao = scale(avaliacao))
 ```
 
+## 2.1 Clusterização Hierárquica
+
 O primeiro algoritmo de clusterização que vou utilizar é a __clusterização hierárquica__. Empiricamente, escolhi o método __ward.D2__ e a __distância euclideana__. Além disso, defini clusterizar os dados em __3 grupos diferentes__, pois vi que essa combinação de parâmetros geraram grupos melhores. 
+
+__Observação__: testei diversas combinações de métodos de distância e de clusterização. Além disso, também normalizeis os dados de maneiras diferentes (padronização e normalização entre [0-1]). Os valores escolhidos foram os que geraram os melhores grupos, ao meu ver. Em muitas combinações houveram grupos com poucos filmes, o que não achei interessante.
 
 ```{r, fig.width=12}
 agrupamento_hs <- filmes %>%
@@ -202,36 +206,84 @@ Também podemos visualizar o gráfico acima com coordenadas paralelas:
 ```{r, fig.width=12}
 atribuicoes %>%
   ggparcoord(columns = c(2:7), groupColumn="grupo") +
-  facet_grid(paste(grupo, " grupos") ~ .) +
+  facet_grid(paste("Grupo ", grupo) ~ .) +
+  labs(x = "", y = "z-score") +
   theme(legend.position = "none")
 ```
 
-É importante notar que as variáveis (eixo x) estão distribuidas diferentemente nos dois gráficos. Entrentanto, acredito que podemos diferenciar os 3 grupos da seguinte forma:
+É importante notar que as variáveis (eixo x) estão distribuidas diferentemente nos dois gráficos. Entretanto, acredito que podemos diferenciar os 3 grupos da seguinte forma:
 
-1. filmes de alta bilheteria, alto orçamento, longa duração, muitas curtidas no facebook e atores renomados;
-2. filmes de bilheteria média, médio orçamento, longa duração, certas curtidas no facebook e atores renomados;
-3. filmes de baixa bilheteria, baixo orçamento, curta duração, baixa avaliação, poucas curtidas no facebook e atores desconhecidos;
+- Filmes de alta bilheteria, alto orçamento, longa duração, muitas curtidas no facebook e atores renomados;
+- Filmes de bilheteria média, médio orçamento, longa duração, certas curtidas no facebook e atores renomados;
+- Filmes de baixa bilheteria, baixo orçamento, curta duração, baixa avaliação, poucas curtidas no facebook e atores desconhecidos;
 
 Vale salientar que a _avaliação_ não influenciou diretamente nos dois primeiros grupos, já que eles apresentam avaliações semelhantes.
+
+# 2.2 K-Means
 
 Vamos agora utilizar o algoritmo __K-Means__. Resolvi também utilizar 3 grupos para poder comparar os dois algoritmos.
 
 ```{r, fig.width=12}
+filmes <- dados_usa
+
 km <- filmes %>%
+  select(-filme, -ator) %>%
+  mutate(bilheteria = scale(bilheteria),
+           orcamento = scale(orcamento),
+           duracao = scale(duracao),
+           likes_filme = scale(likes_filme),
+           likes_ator = scale(likes_ator),
+           avaliacao = scale(avaliacao)) %>%
   kmeans(centers = 3, nstart=10)
 
 filmes$kmcluster = km$cluster
 
 filmes %>%
-  ggparcoord(columns = c(1:6), groupColumn="kmcluster") +
-  facet_grid(paste(kmcluster, " grupos") ~ .) +
+  ggparcoord(columns = c(3:8), groupColumn="kmcluster") +
+  facet_grid(paste("Grupo ", kmcluster) ~ .) +
+  labs(x = "", y = "z-score") +
   theme(legend.position = "none")
 ```
 
-De acordo com o gráfico, podemos dizer que os 3 grupos se caracterizam da seguinte forma:
+De acordo com o gráfico, podemos dizer que os 3 grupos se caracterizam da seguinte forma (não necessariamente nessa ordem):
 
-1. Filme de baixa bilheteria, baixo orçamento, longa duração, boa avaliação, certas curtidas no facebook e atores renomados;
-2. Filme de baixa bilheteria, baixo orçamento, curta duração, baixa avaliação, poucas curtidas no facebook e atores desconhecidos;
-3. Filmes de alta bilheteria, alto orçamento, longa duração, média avaliação, muitas curtidas no facebook e atores renomados;
+- Filmes de baixa avaliação, menor duração, poucos/médios likes no facebook e atores com poucos/médios likes;
+- Filme de longa duração, média quantidade de likes no facebook e atores renomados;
+- Filmes de alta bilheteria, alto orçamento, longa duração, boa avaliação, muitas curtidas no facebook e atores renomados;
 
-Corrigir titulo dos gráficos (1 grupo, 2 grupos, 3 grupos -> Grupo 1, grupo 2, grupo 3,...)
+__Observação__: não citei todas as variáveis em todos os grupos, pois acredito que elas não contribuiram significantemente para a categorização daquele grupo em comparação com os demais.
+
+__Observação 2__: a ordem dos grupos citados acima pode ser diferentes dos gráficos, pois todas vez que o código R é executado a clusterização pode gerar resultados diferentes.
+
+Vamos agora observar alguns filmes de cada um dos grupos:
+
+```{r}
+filmes %>%
+  filter(kmcluster == 1) %>%
+  head() %>%
+  kable()
+```
+
+```{r}
+filmes %>%
+  filter(kmcluster == 2) %>%
+  head() %>%
+  kable()
+```
+
+```{r}
+filmes %>%
+  filter(kmcluster == 3) %>%
+  head() %>%
+  kable()
+```
+
+# 3. Conclusões
+
+Este relatório realizou o agrupamento de dados de filmes em 3 grupos utilizando métodos de agrupamento diferentes: __clusterização hierárquica__ e __K-Means__.
+
+De acordo com os resultados, podemos concluir que:
+
+* As variáveis escolhidas apresentam distribuições semelhantes, mas com faixa de valores bem diferentes;
+* A escolha do método de distância e da estratégia de padronização dos dados é crucial para o resultado da clusterização, influenciando significativamente na categorização dos dados em grupos;
+* Houve um grupo parecido nos dois métodos: os filmes com baixa avaliação.
