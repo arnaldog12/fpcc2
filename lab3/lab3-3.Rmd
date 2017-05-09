@@ -1,0 +1,103 @@
+---
+title: "Lab 3 - Checkpoint 3"
+author: "Arnaldo Gualberto"
+date: "9 de maio de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 0. Imports and Settings
+```{r}
+library(cluster)
+library(dplyr, warn.conflicts = FALSE)
+library(GGally)
+library(ggplot2)
+library(knitr)
+library(readr)
+library(tibble)
+source('multiplot.R')
+```
+
+# 1. Análise Descritiva
+```{r}
+dados_all <- read_csv("dados/capes-cacc.csv")
+glimpse(dados)
+```
+
+```{r}
+dados <- dados_all %>%
+  replace(is.na(.), 0) %>%
+  mutate(periodicos_restrito = periodicos_A1 + periodicos_A2 + periodicos_B1) %>%
+  mutate(periodicos_qualis = periodicos_B1 + periodicos_B2 + periodicos_B3 + periodicos_B4 + periodicos_B5) %>%
+  select(instituicao = Instituição, 
+         nivel = Nível, 
+         colaboradores = `Docentes colaboradores`,
+         permanentes = `Docentes permanentes`,
+         artigos_conf = `Artigos em conf`,
+         dissertacoes = Dissertacoes,
+         teses = Teses,
+         periodicos_restrito,
+         periodicos_qualis)
+
+dados %>% head()
+```
+
+```{r}
+dados %>%
+  select(-instituicao) %>%
+  summary()
+```
+
+```{r}
+dados %>%
+  select(-instituicao) %>%
+  ggpairs()
+```
+
+```{r}
+dados %>%
+  ggplot(aes(x = nivel)) +
+  geom_bar()
+```
+
+
+```{r}
+plot_nivel <- dados %>%
+  ggplot(aes(x = 0, y = nivel)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_colaboradores <- dados %>%
+  mutate(nivel = as.factor(nivel)) %>%
+  ggplot(aes(x = 0, y = colaboradores, color=nivel)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_permanentes <- dados %>%
+  ggplot(aes(x = 0, y = permanentes)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_artigos_conf <- dados %>%
+  ggplot(aes(x = 0, y = artigos_conf)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_dissertacoes <- dados %>%
+  ggplot(aes(x = 0, y = dissertacoes)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_teses <- dados %>%
+  ggplot(aes(x = 0, y = teses)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_per_qualis <- dados %>%
+  ggplot(aes(x = 0, y = periodicos_qualis)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_per_restrito <- dados %>%
+  ggplot(aes(x = 0, y = periodicos_restrito)) +
+  geom_point(position = position_jitter(width = 0.3))
+
+multiplot(plot_nivel, plot_colaboradores, plot_permanentes, plot_artigos_conf, plot_dissertacoes, plot_teses, plot_per_qualis, plot_per_restrito, cols = 2)
+```
+
