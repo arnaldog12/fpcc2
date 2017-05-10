@@ -13,18 +13,20 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(cluster)
 library(dplyr, warn.conflicts = FALSE)
-library(GGally)
+library(GGally, warn.conflicts = FALSE)
+library(ggdendro)
 library(ggplot2)
 library(knitr)
 library(readr)
 library(tibble)
+library(tidyr)
 source('multiplot.R')
 ```
 
 # 1. Análise Descritiva
-```{r}
-dados_all <- read_csv("dados/capes-cacc.csv")
-glimpse(dados)
+```{r, message=FALSE}
+dados_all <- read_csv("data/capes-cacc.csv")
+glimpse(dados_all)
 ```
 
 ```{r}
@@ -53,6 +55,12 @@ dados %>%
 
 ```{r}
 dados %>%
+  summarise(sd(colaboradores), sd(permanentes), sd(artigos_conf), sd(dissertacoes), sd(teses), sd(periodicos_qualis), sd(periodicos_restrito))
+```
+
+
+```{r, fig.width=12}
+dados %>%
   select(-instituicao) %>%
   ggpairs()
 ```
@@ -63,41 +71,130 @@ dados %>%
   geom_bar()
 ```
 
+```{r}
+dados %>%
+  top_n(10, dissertacoes) %>%
+  ggplot(aes(x = reorder(instituicao, dissertacoes), y = dissertacoes)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
 
 ```{r}
+dados %>%
+  top_n(10, teses) %>%
+  ggplot(aes(x = reorder(instituicao, teses), y = teses)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+```{r}
+dados %>%
+  top_n(10, artigos_conf) %>%
+  ggplot(aes(x = reorder(instituicao, artigos_conf), y = artigos_conf)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+```{r}
+dados %>%
+  top_n(10, periodicos_qualis) %>%
+  ggplot(aes(x = reorder(instituicao, periodicos_qualis), y = periodicos_qualis)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+```{r}
+dados %>%
+  top_n(10, periodicos_restrito) %>%
+  ggplot(aes(x = reorder(instituicao, periodicos_restrito), y = periodicos_restrito)) + 
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+```{r, fig.width=12}
 plot_nivel <- dados %>%
   ggplot(aes(x = 0, y = nivel)) +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(alpha = 0.3)
 
 plot_colaboradores <- dados %>%
-  mutate(nivel = as.factor(nivel)) %>%
-  ggplot(aes(x = 0, y = colaboradores, color=nivel)) +
-  geom_point(position = position_jitter(width = 0.3))
+  ggplot(aes(x = 0, y = colaboradores)) +
+  geom_point(alpha = 0.3)
 
 plot_permanentes <- dados %>%
   ggplot(aes(x = 0, y = permanentes)) +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(alpha = 0.3)
 
 plot_artigos_conf <- dados %>%
   ggplot(aes(x = 0, y = artigos_conf)) +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(alpha = 0.3)
 
 plot_dissertacoes <- dados %>%
   ggplot(aes(x = 0, y = dissertacoes)) +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(alpha = 0.3)
 
 plot_teses <- dados %>%
   ggplot(aes(x = 0, y = teses)) +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(alpha = 0.3)
 
 plot_per_qualis <- dados %>%
   ggplot(aes(x = 0, y = periodicos_qualis)) +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(alpha = 0.3)
 
 plot_per_restrito <- dados %>%
   ggplot(aes(x = 0, y = periodicos_restrito)) +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(alpha = 0.3)
 
-multiplot(plot_nivel, plot_colaboradores, plot_permanentes, plot_artigos_conf, plot_dissertacoes, plot_teses, plot_per_qualis, plot_per_restrito, cols = 2)
+multiplot(plot_nivel, plot_colaboradores, plot_permanentes, plot_artigos_conf, plot_dissertacoes, plot_teses, plot_per_qualis, plot_per_restrito, cols = 4)
 ```
 
+# 2. Clusterização
+
+```{r}
+dados_pro <- dados %>%
+  mutate(colaboradores = as.vector(scale(colaboradores)),
+         permanentes = as.vector(scale(permanentes)),
+         artigos_conf = as.vector(scale(artigos_conf+1)),
+         dissertacoes = as.vector(scale(dissertacoes+1)),
+         teses = as.vector(scale(teses+1)),
+         periodicos_qualis = as.vector(scale(periodicos_qualis+1)),
+         periodicos_restrito = as.vector(scale(periodicos_restrito+1)))
+
+dados_pro %>% head()
+```
+
+
+## 2.1 Clusterização Hierárquica
+
+```{r, fig.width=12, fig.height=10}
+distancias = dados_pro %>%
+  select(-instituicao) %>%
+  dist(method = "maximum")
+
+clust_hier <- distancias %>%
+  hclust(method = "ward.D")
+
+ggdendrogram(clust_hier, rotate = TRUE)
+```
+
+```{r}
+plot(silhouette(cutree(clust_hier, k = 4), distancias))
+```
+
+
+```{r, fig.width=12}
+atribuicoes <- cbind(dados_pro, grupo = cutree(clust_hier, k = 4))
+
+atribuicoes %>%
+  select(-instituicao) %>%
+  ggparcoord(columns = c(1:8), groupColumn="grupo", scale = "globalminmax") +
+  facet_grid(paste("Grupo ", grupo) ~ .) +
+  theme(legend.position = "none") +
+  scale_y_continuous(breaks=c(0, 2, 4, 6))
+```
+
+## 2.2 K-Means
+
+# 3. Redução da Dimensionalidade
+## Principal Component Analysis (PCA)
+
+## t-SNE
