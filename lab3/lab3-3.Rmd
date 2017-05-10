@@ -2,7 +2,9 @@
 title: "Lab 3 - Checkpoint 3"
 author: "Arnaldo Gualberto"
 date: "9 de maio de 2017"
-output: html_document
+output: 
+  html_document:
+    smart: no
 ---
 
 ```{r setup, include=FALSE}
@@ -11,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # 0. Imports and Settings
 ```{r}
+library(broom)
 library(cluster)
 library(dplyr, warn.conflicts = FALSE)
 library(GGally, warn.conflicts = FALSE)
@@ -176,7 +179,7 @@ clust_hier <- distancias %>%
 ggdendrogram(clust_hier, rotate = TRUE)
 ```
 
-```{r}
+```{r, fig.width=12}
 plot(silhouette(cutree(clust_hier, k = 4), distancias))
 ```
 
@@ -193,6 +196,45 @@ atribuicoes %>%
 ```
 
 ## 2.2 K-Means
+
+```{r}
+set.seed(1234)
+explorando_k <- tibble(k = 2:12) %>%
+  group_by(k) %>%
+  do(
+    kmeans(select(dados_pro, -instituicao), centers = .$k, nstart = 20) %>% glance()
+  )
+
+explorando_k %>%
+  ggplot(aes(x = k, y = tot.withinss)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks=c(2:12))
+```
+
+```{r}
+explorando_k %>%
+  ggplot(aes(x = k, y = betweenss/totss)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = c(2:12))
+```
+
+
+```{r, fig.width=12}
+km <- dados_pro %>%
+  select(-instituicao) %>%
+  kmeans(centers = 4, nstart = 20)
+
+atribuicoes <- cbind(dados_pro, grupo = km$cluster)
+
+atribuicoes %>%
+  select(-instituicao) %>%
+  ggparcoord(columns = c(1:8), groupColumn = "grupo", scale = "globalminmax") +
+  facet_grid(paste("Grupo ", grupo) ~ .) +
+  ylab("Z-score") +
+  theme()
+```
 
 # 3. Redução da Dimensionalidade
 ## Principal Component Analysis (PCA)
