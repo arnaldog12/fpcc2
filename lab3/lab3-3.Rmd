@@ -19,10 +19,13 @@ library(dplyr, warn.conflicts = FALSE)
 library(GGally, warn.conflicts = FALSE)
 library(ggdendro)
 library(ggplot2)
+library(ggfortify)
+library(highcharter, quietly = TRUE)
 library(knitr)
 library(readr)
 library(tibble)
 library(tidyr)
+require(Rtsne, quietly = TRUE)
 source('multiplot.R')
 ```
 
@@ -68,13 +71,13 @@ dados %>%
   ggpairs()
 ```
 
-```{r}
+```{r, fig.align="center"}
 dados %>%
   ggplot(aes(x = nivel)) +
   geom_bar()
 ```
 
-```{r}
+```{r, fig.align="center"}
 dados %>%
   top_n(10, dissertacoes) %>%
   ggplot(aes(x = reorder(instituicao, dissertacoes), y = dissertacoes)) +
@@ -82,7 +85,7 @@ dados %>%
   coord_flip()
 ```
 
-```{r}
+```{r, fig.align="center"}
 dados %>%
   top_n(10, teses) %>%
   ggplot(aes(x = reorder(instituicao, teses), y = teses)) +
@@ -90,7 +93,7 @@ dados %>%
   coord_flip()
 ```
 
-```{r}
+```{r, fig.align="center"}
 dados %>%
   top_n(10, artigos_conf) %>%
   ggplot(aes(x = reorder(instituicao, artigos_conf), y = artigos_conf)) +
@@ -98,7 +101,7 @@ dados %>%
   coord_flip()
 ```
 
-```{r}
+```{r, fig.align="center"}
 dados %>%
   top_n(10, periodicos_qualis) %>%
   ggplot(aes(x = reorder(instituicao, periodicos_qualis), y = periodicos_qualis)) +
@@ -106,7 +109,7 @@ dados %>%
   coord_flip()
 ```
 
-```{r}
+```{r, fig.align="center"}
 dados %>%
   top_n(10, periodicos_restrito) %>%
   ggplot(aes(x = reorder(instituicao, periodicos_restrito), y = periodicos_restrito)) + 
@@ -197,7 +200,7 @@ atribuicoes %>%
 
 ## 2.2 K-Means
 
-```{r}
+```{r, fig.align="center"}
 set.seed(1234)
 explorando_k <- tibble(k = 2:12) %>%
   group_by(k) %>%
@@ -212,7 +215,7 @@ explorando_k %>%
   scale_x_continuous(breaks=c(2:12))
 ```
 
-```{r}
+```{r, fig.align="center"}
 explorando_k %>%
   ggplot(aes(x = k, y = betweenss/totss)) +
   geom_line() +
@@ -226,17 +229,95 @@ km <- dados_pro %>%
   select(-instituicao) %>%
   kmeans(centers = 4, nstart = 20)
 
-atribuicoes <- cbind(dados_pro, grupo = km$cluster)
-
-atribuicoes %>%
+km %>%
+  augment(dados_pro) %>%
   select(-instituicao) %>%
-  ggparcoord(columns = c(1:8), groupColumn = "grupo", scale = "globalminmax") +
-  facet_grid(paste("Grupo ", grupo) ~ .) +
+  ggparcoord(columns = c(1:8), groupColumn = ".cluster", scale = "globalminmax") +
+  facet_grid(paste("Grupo ", .cluster) ~ .) +
   ylab("Z-score") +
-  theme()
+  theme(legend.position = "none")
 ```
 
 # 3. Redução da Dimensionalidade
 ## Principal Component Analysis (PCA)
 
+```{r}
+dados_pca <- dados_pro %>%
+  select(-instituicao) %>%
+  prcomp(scale = FALSE)
+
+as.data.frame(dados_pca$rotation)
+```
+
+```{r, fig.align="center"}
+tidy(dados_pca, "pcs") %>%
+  ggplot(aes(x = PC, y = cumulative, label = cumulative)) +
+  geom_line() +
+  geom_point() +
+  geom_text(vjust = 1, hjust = -.1)
+```
+
+```{r, fig.width=12}
+dados_pro_aug <- km %>% augment(dados)
+
+dados_pca %>%
+  augment(dados_pro_aug) %>%
+  ggplot(aes(x = .fittedPC1, y = .fittedPC2, color = .cluster)) +
+  geom_point(alpha = 0.8) +
+  theme(legend.position = "none")
+```
+
+```{r, fig.width=12}
+p = dados_pca %>%
+  augment(dados_pro_aug) %>%
+  hchart("scatter", hcaes(x = .fittedPC1, y = .fittedPC2, color = .cluster)) %>%
+  hc_tooltip(pointFormat = "<b>{point.instituicao}</b><br>
+                     Nível: {point.nivel}<br>
+             Colaboradores: {point.colaboradores}<br>
+               Permanentes: {point.permanentes}<br>
+             Artigos Conf.: {point.artigos_conf}<br>
+              Dissertações: {point.dissertacoes}<br>
+                     Teses: {point.teses}<br>
+                Per. A1-B1: {point.periodicos_restrito}<br>
+                Per. B2-B5: {point.periodicos_qualis}")
+p
+```
+
+```{r, fig.width=12}
+autoplot(dados_pca, label = F, label.size = 3, shape = T, colour = km$cluster, loadings = TRUE, loadings.color = 'red', loadings.label = TRUE, loadings.label.size = 3, loadings.label.hjust=1.1)
+```
+
 ## t-SNE
+
+```{r, fig.width=12}
+set.seed(1234)
+tsne.out = dados_pro %>%
+  select(-instituicao) %>%
+  Rtsne(perplexity = 20)
+
+df <- as.data.frame(tsne.out$Y)
+dados_tsne <- cbind(dados_pro_aug, df)
+
+dados_tsne %>% 
+  ggplot(aes(x = V1, y = V2, color = .cluster)) +
+  geom_point(alpha = 0.8) +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+p <- dados_tsne %>%
+  hchart("scatter", hcaes(x = V1, y = V2, color = .cluster)) %>%
+  hc_tooltip(pointFormat = "<b>{point.instituicao}</b><br>
+                     Nível: {point.nivel}<br>
+             Colaboradores: {point.colaboradores}<br>
+               Permanentes: {point.permanentes}<br>
+             Artigos Conf.: {point.artigos_conf}<br>
+              Dissertações: {point.dissertacoes}<br>
+                     Teses: {point.teses}<br>
+                Per. A1-B1: {point.periodicos_restrito}<br>
+                Per. B2-B5: {point.periodicos_qualis}")
+
+p
+```
+
