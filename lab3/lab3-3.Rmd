@@ -64,9 +64,10 @@ Para fins de visualização, também vou armazenar o nome da instituição.
 ```{r}
 dados <- dados_all %>%
   replace(is.na(.), 0) %>%
+  mutate(instituicao = sprintf("%s (%s)", Instituição, Sigla)) %>%
   mutate(periodicos_restrito = periodicos_A1 + periodicos_A2 + periodicos_B1) %>%
   mutate(periodicos_qualis = periodicos_B1 + periodicos_B2 + periodicos_B3 + periodicos_B4 + periodicos_B5) %>%
-  select(instituicao = Instituição,
+  select(instituicao,
          nivel = Nível,
          colaboradores = `Docentes colaboradores`,
          permanentes = `Docentes permanentes`,
@@ -235,6 +236,8 @@ Pelo gráfico acima, conseguimos confirmar que as variáveis se concentram na pa
 
 # 2. Clusterização
 
+Antes de efetuarmos a clusterização, vou efetuar a __padronização__ dos dados. Como visto no checkpoint anterior, isso é de extrema imoportância para evitar que variáveis com range grande se sobreponham sobre as variáveis de baixo range de valores.
+
 ```{r}
 dados_pro <- dados %>%
   mutate(colaboradores = as.vector(scale(colaboradores)),
@@ -248,12 +251,13 @@ dados_pro <- dados %>%
 dados_pro %>% head()
 ```
 
-
 ## 2.1 Clusterização Hierárquica
 
-```{r, fig.width=12, fig.height=10}
-distancias = dados_pro %>%
-  select(-instituicao) %>%
+O primeiro agrupamento que vou efetuar é a __clusterização hierárquica__. Previamente, eu realizei alguns testes empíricos com combinações diferentes de métodos de distância e agrupamento. Os melhores parâmetros que eu encontrei são mostrados no código a seguir:
+
+```{r, fig.width=12, fig.height=10, message=FALSE}
+distancias <- dados_pro %>%
+  column_to_rownames("instituicao") %>%
   dist(method = "maximum")
 
 clust_hier <- distancias %>%
@@ -262,10 +266,21 @@ clust_hier <- distancias %>%
 ggdendrogram(clust_hier, rotate = TRUE)
 ```
 
+O dendograma acima mostra a árvore de agrupamento realizada pelo algoritmo de clusterização hierárquica. Visualmente, eu acredito que 3 ou 4 grupos formariam uma boa clusterização. Além disso, também quero destacar alguns pontos interessantes:
+
+* **As melhores universidades brasileiras se encontram na parte de baixo do dendograma**;
+* **A UFPB foi agrupada com a USP/EACH e FESP/UPE**;
+* **A UFCG foi agrupada com a UFPR**;
+
+Vamos agora plotar o gráfico de silhueta. Eu testei o gráfico para 3 e 4 grupos. Acabei escolhendo 4 grupos, pois achei a quantidade de pontos em cada grupo mais homogênea em relação a somente 3 grupos.
+
 ```{r, fig.width=12}
 plot(silhouette(cutree(clust_hier, k = 4), distancias))
 ```
 
+Pode-se perceber pelo gráfico acima que os 4 grupos possuem entre 8 e 28 universidades. Ademais, a maior parte dos pontos estão bem alocados em seus grupos. O grupo 3 é o grupo com o melhor alocamento de pontos, enquanto o grupo 2 apresenta a maior dúvida sobre a alocação de alguns de seus pontos.
+
+Tendo em vista que clusterizamos as universidades em 4 grupos pelo algoritmo de clusterização hierárquica, vamos agora analisar as características de cada um dos grupos e distingui-los:
 
 ```{r, fig.width=12}
 atribuicoes <- cbind(dados_pro, grupo = cutree(clust_hier, k = 4))
@@ -277,6 +292,52 @@ atribuicoes %>%
   theme(legend.position = "none") +
   scale_y_continuous(breaks=c(0, 2, 4, 6))
 ```
+
+De acordo com o gráfico acima, eu nomearia os grupos da seguinte maneira (fazendo analogia ao campeonato brasileiro):
+
+__Grupo 1__: _Série B_ (Universidades que brigam para subir)
+Universidades de nível 3-5, poucos colaboradores e o restante das variáveis na média geral;
+
+__Grupo 2__: _Série C_ (Universidades que querem se tornar "profissionais")
+Universidades de nível 3-4, com mais colaboradores que as do _Grupo 1_, porém almejam o Doutorado (Série B) em sua maioria.
+
+__Grupo 3__: _Série D_ (Várzea)
+Universidades de nível 3, sem Doutorado, e com a maioria das variáveis abaixo da média.
+
+__Grupo 4__: _Série A_ (Universidades supra-sumo)
+Universidades de nível 6-7, com alto nível de produção científica em geral.
+
+Vamos agora visualizar alguns integrantes desses grupos:
+
+```{r}
+dados_hclust <- atribuicoes %>%
+  left_join(dados, by = c("instituicao")) %>%
+  select(instituicao, nivel.y, colaboradores.y, permanentes.y, artigos_conf.y, dissertacoes.y, teses.y, periodicos_qualis.y, periodicos_restrito.y,  grupo)
+
+dados_hclust %>%
+  filter(grupo == 1) %>%
+  head(10)
+```
+
+```{r}
+dados_hclust %>%
+  filter(grupo == 2) %>%
+  head(10)
+```
+
+```{r}
+dados_hclust %>%
+  filter(grupo == 3) %>%
+  head(10)
+```
+
+```{r}
+dados_hclust %>%
+  filter(grupo == 4) %>%
+  head(10)
+```
+
+É interessante notar que a UFPB e UFCG estão situadas no Grupo 2.
 
 ## 2.2 K-Means
 
