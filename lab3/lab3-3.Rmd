@@ -2,17 +2,24 @@
 title: "Lab 3 - Checkpoint 3"
 author: "Arnaldo Gualberto"
 date: "9 de maio de 2017"
-output: 
+output:
   html_document:
     smart: no
 ---
+
+O objetivo do checkpoint 3 do Lab 3 é realizar novamente a clusterização de algum conjunto de dados, porém desta vez o foco é a visualização dos dados através de técnicas de redução de dimensionalidade.
+
+Para esse checkpoint, foram utilizados dados quantitativos que a CAPES utiliza na avaliação dos programas de pós-graduação em Ciência da Computação segundo o Comitê de Avaliação. Os dados foram coletados da Plataforma Sucupira, e incluem quantificações da produção de artigos, dissertações e teses nos últimos 4 anos para os diferentes PPGs.
+
+
+Escolha bem as suas variáveis, transformações, normalização, etc., e faça um descritivo das variáveis antes de começar. Também lembre de comentar os grupos encontrados e, principalmente para essa parte do problema, as relações entre as dimensões que você encontrou via PCA e as variáveis originais. Sempre comente também os padrões interessantes que você encontrar.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # 0. Imports and Settings
-```{r}
+```{r, message=FALSE}
 library(broom)
 library(cluster)
 library(dplyr, warn.conflicts = FALSE)
@@ -30,18 +37,37 @@ source('multiplot.R')
 ```
 
 # 1. Análise Descritiva
+
+Primeiramente, vou carregar os dados e ter uma noção do seus valores:
+
 ```{r, message=FALSE}
 dados_all <- read_csv("data/capes-cacc.csv")
 glimpse(dados_all)
 ```
+
+A primeira modificação que vou efetuar nos dados é setar os valores nulos para 0. Além disso, vou criar duas novas colunas:
+
+* **periodicos_restrito**: contém a soma dos periódicos publicados em eventos com o Qualis restrito da CAPES (A1, A2 e B1).
+* **periodicos_qualis**: contém a soma dos periódicos publicados em eventos com os demais Qualis considerados pela CAPES (B2, B3, B4 e B5).
+
+Logo, além dessas duas variáveis, para essa análise, também considerarei outras seis variáveis:
+
+* **nível**: nível da pós-graduação da instituição definido pela CAPES (de 3 a 7);
+* **colaboradores**: média da quantidade de docentes colaboradores por ano ao longo do período considerado pela CAPES para avaliação;
+* **permanentes**: média da quantidade de docentes permanentes da instituição por ano ao longo do mesmo período;
+* **artigos_conf**: quantidade de artigos publicados em Conferências;
+* **dissertacoes**: quantidade de dissertações de Mestrado;
+* **teses**: quantidade de teses de Doutorado;
+
+Para fins de visualização, também vou armazenar o nome da instituição.
 
 ```{r}
 dados <- dados_all %>%
   replace(is.na(.), 0) %>%
   mutate(periodicos_restrito = periodicos_A1 + periodicos_A2 + periodicos_B1) %>%
   mutate(periodicos_qualis = periodicos_B1 + periodicos_B2 + periodicos_B3 + periodicos_B4 + periodicos_B5) %>%
-  select(instituicao = Instituição, 
-         nivel = Nível, 
+  select(instituicao = Instituição,
+         nivel = Nível,
          colaboradores = `Docentes colaboradores`,
          permanentes = `Docentes permanentes`,
          artigos_conf = `Artigos em conf`,
@@ -53,29 +79,52 @@ dados <- dados_all %>%
 dados %>% head()
 ```
 
+Vamos começar analisando o sumário dos dados:
+
 ```{r}
 dados %>%
   select(-instituicao) %>%
   summary()
 ```
 
+O sumário dos dados apresentam informações interessantes: 
+
+- __Há uma instituição que publicou quase 1000 artigos em conferências__ (vamos saber qual é mais a frente); 
+- Em média, __14 Doutores são formados no período de avaliação da CAPES__, aproximadamente. 
+- __Mais artigos são publicados em periódicos com Qualis restrito do que nos demais Qualis__, tanto na média quanto no total;
+
+Também é importante saber o desvio-padrão dessas variáveis:
+
 ```{r}
 dados %>%
   summarise(sd(colaboradores), sd(permanentes), sd(artigos_conf), sd(dissertacoes), sd(teses), sd(periodicos_qualis), sd(periodicos_restrito))
 ```
 
+Podemos ver que _artigos em conferência_ apresentam o maior desvio-padrão, seguido por _periódicos no Qualis restrito_ e _dissertações_, respectivamente.
 
-```{r, fig.width=12}
+Vamos agora analisar a distribuição das variáveis individualmente e aos pares:
+
+```{r, fig.width=12, fig.height=6}
 dados %>%
   select(-instituicao) %>%
   ggpairs()
 ```
+
+Ao analisar as variáveis de forma individual (diagonal principal), podemos ver que __praticamente todas as variáveis apresentam uma distribuição à esquerda com cauda longa à direita__. É importante destacar que a variável _nível_ apresenta uma distribuição bimodal, devido ao fato de existirem mais programas de pós-graduação com níveis mais baixos (3 e 4). 
+
+Por outro lado, quando analisamos as variáveis aos pares, podemos ver que existem bastante correlações fortes (> 0.7) entre as variáveis. __A maior correlação é observada entre a quantidade de periódicos publicados no Qualis restrito e nos demais Qualis (0.925), ou seja, quanto mais se publica periódicos em eventos com Qualis restrito, mais se publica nos demais Qualis__. Obviamente, isso não representa uma causalidade, mas, de certa forma, é um comportamento esperado. __Também pode-se observar forte correlação entre a quantidade artigos publicados em periódicos com Qualis restrito e a docentes permanentes (0.901) e artigos publicados em conferências (0.904)__.
+
+Agora, quero fazer algumas visualizações. Primeiramente, quero analisar a distribuição dos níveis dos programas de pós-graduação do país:
 
 ```{r, fig.align="center"}
 dados %>%
   ggplot(aes(x = nivel)) +
   geom_bar()
 ```
+
+Como visto anteriormente, __a maior parte dos programas de pós-graduação apresentam os níveis 3 e 4__. Há apenas 5 programas com nível 5. __É interessante observar que há mais programas de nível 7 do que 6 (5 contra 3, respectivamente)__.
+
+Vamos analisar quais são as instituições que mais produzem dissertações de Mestrado:
 
 ```{r, fig.align="center"}
 dados %>%
@@ -85,6 +134,10 @@ dados %>%
   coord_flip()
 ```
 
+__A UFPE é a universidade brasileira que mais produz dissertações de Mestrado no país (+400), produzindo mais que o dobro da segunda colocada, a USP (São Carlos)__.
+
+E qual será a universidade que mais produz teses de Doutorado?
+
 ```{r, fig.align="center"}
 dados %>%
   top_n(10, teses) %>%
@@ -92,6 +145,10 @@ dados %>%
   geom_bar(stat = "identity") +
   coord_flip()
 ```
+
+Nesse caso, ocorre o inverso, com a USP (São Carlos) à frente da UFPE. Porém, a quantidade de teses produzidas é bem mais parecida entre as duas universidades.
+
+Qual a universidade que mais publica artigos em conferência?
 
 ```{r, fig.align="center"}
 dados %>%
@@ -101,6 +158,10 @@ dados %>%
   coord_flip()
 ```
 
+De forma individual, a USP de São Carlos é a universidade responsável pelo maior número de publicações em  conferências. Porém, a UFPE aparece com um número maior devido quando somados os dois programas de pós-graduação (_stricto sensu_ e profisional).
+
+Quero agora saber a respeito das publicações em periódicos. Primeiramente, quero analisar as publicações dos periódicos fora do Qualis restrito (B2 a B5):
+
 ```{r, fig.align="center"}
 dados %>%
   top_n(10, periodicos_qualis) %>%
@@ -109,49 +170,68 @@ dados %>%
   coord_flip()
 ```
 
+Novamente, a USP (São Carlos) lidera o ranking, com aproximadamente o dobro da segunda colocada, a UniCamp. A UFRJ publica aproximadamente 200 artigos quando considerados os dois programas da pós-graduação (_Informática_ e _Engenharia de Sistemas e Computação_).
+
+Por fim, quero fazer a mesma análise, porém para os artigos publicados em periódicos no Qualis restrito:
+
 ```{r, fig.align="center"}
 dados %>%
   top_n(10, periodicos_restrito) %>%
-  ggplot(aes(x = reorder(instituicao, periodicos_restrito), y = periodicos_restrito)) + 
+  ggplot(aes(x = reorder(instituicao, periodicos_restrito), y = periodicos_restrito)) +
   geom_bar(stat = "identity") +
   coord_flip()
 ```
 
+Mais uma vez, a USP de São Carlos encabeça o ranking, seguido pela UFPE se considerarmos os dois programas de pós-graduação descritos anteriormente.
+
+É válido destacar que, de maneira geral, algumas das universidades mostradas nos gráficos acima aparecem em praticamente todos os gráficos. Talvez isso indique algum grupo que vamos encontrar no agrupamento que iremos realizar.
+
+Para finalizar a análise descritiva, quero analisar a disposição das variáveis de forma individual: 
+
 ```{r, fig.width=12}
 plot_nivel <- dados %>%
   ggplot(aes(x = 0, y = nivel)) +
-  geom_point(alpha = 0.3)
+  geom_point(alpha = 0.3) 
 
 plot_colaboradores <- dados %>%
   ggplot(aes(x = 0, y = colaboradores)) +
-  geom_point(alpha = 0.3)
+  geom_boxplot() +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
 
 plot_permanentes <- dados %>%
   ggplot(aes(x = 0, y = permanentes)) +
-  geom_point(alpha = 0.3)
+  geom_boxplot() +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
 
 plot_artigos_conf <- dados %>%
   ggplot(aes(x = 0, y = artigos_conf)) +
-  geom_point(alpha = 0.3)
+  geom_boxplot() +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
 
 plot_dissertacoes <- dados %>%
   ggplot(aes(x = 0, y = dissertacoes)) +
-  geom_point(alpha = 0.3)
+  geom_boxplot() +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
 
 plot_teses <- dados %>%
   ggplot(aes(x = 0, y = teses)) +
-  geom_point(alpha = 0.3)
+  geom_boxplot() +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
 
 plot_per_qualis <- dados %>%
   ggplot(aes(x = 0, y = periodicos_qualis)) +
-  geom_point(alpha = 0.3)
+  geom_boxplot() +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
 
 plot_per_restrito <- dados %>%
   ggplot(aes(x = 0, y = periodicos_restrito)) +
-  geom_point(alpha = 0.3)
+  geom_boxplot() +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
 
 multiplot(plot_nivel, plot_colaboradores, plot_permanentes, plot_artigos_conf, plot_dissertacoes, plot_teses, plot_per_qualis, plot_per_restrito, cols = 4)
 ```
+
+Pelo gráfico acima, conseguimos confirmar que as variáveis se concentram na parte inferior do gráfico, como visto no gráfico de pares. Eu também arriscaria dizer que existem de 3 a 5 grupos de universidades. Vamos verificar isso na próxima seção.
 
 # 2. Clusterização
 
@@ -239,7 +319,7 @@ km %>%
 ```
 
 # 3. Redução da Dimensionalidade
-## Principal Component Analysis (PCA)
+## 3.1 Principal Component Analysis (PCA)
 
 ```{r}
 dados_pca <- dados_pro %>%
@@ -287,7 +367,7 @@ p
 autoplot(dados_pca, label = F, label.size = 3, shape = T, colour = km$cluster, loadings = TRUE, loadings.color = 'red', loadings.label = TRUE, loadings.label.size = 3, loadings.label.hjust=1.1)
 ```
 
-## t-SNE
+## 3.2 t-SNE
 
 ```{r, fig.width=12}
 set.seed(1234)
@@ -298,7 +378,7 @@ tsne.out = dados_pro %>%
 df <- as.data.frame(tsne.out$Y)
 dados_tsne <- cbind(dados_pro_aug, df)
 
-dados_tsne %>% 
+dados_tsne %>%
   ggplot(aes(x = V1, y = V2, color = .cluster)) +
   geom_point(alpha = 0.8) +
   theme(legend.position = "none")
@@ -320,4 +400,3 @@ p <- dados_tsne %>%
 
 p
 ```
-
