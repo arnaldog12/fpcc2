@@ -31,6 +31,9 @@ library(tibble)
 library(tidyr)
 require(Rtsne, quietly = TRUE)
 source('multiplot.R')
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
 ```
 
 # 1. Análise Descritiva {analise}
@@ -74,7 +77,7 @@ dados <- dados_all %>%
          periodicos_restrito,
          periodicos_qualis)
 
-dados %>% head()
+dados %>% head() %>% kable()
 ```
 
 Vamos começar analisando o sumário dos dados:
@@ -82,7 +85,8 @@ Vamos começar analisando o sumário dos dados:
 ```{r}
 dados %>%
   select(-instituicao) %>%
-  summary()
+  summary() %>%
+  kable()
 ```
 
 O sumário dos dados apresentam informações interessantes: 
@@ -95,7 +99,8 @@ Também é importante saber o desvio-padrão dessas variáveis:
 
 ```{r}
 dados %>%
-  summarise(sd(colaboradores), sd(permanentes), sd(artigos_conf), sd(dissertacoes), sd(teses), sd(periodicos_qualis), sd(periodicos_restrito))
+  summarise(sd(colaboradores), sd(permanentes), sd(artigos_conf), sd(dissertacoes), sd(teses), sd(periodicos_qualis), sd(periodicos_restrito)) %>%
+  kable()
 ```
 
 Podemos ver que _artigos em conferência_ apresentam o maior desvio-padrão, seguido por _periódicos no Qualis restrito_ e _dissertações_, respectivamente.
@@ -117,7 +122,9 @@ Agora, quero fazer algumas visualizações. Primeiramente, quero analisar a dist
 ```{r, fig.align="center"}
 dados %>%
   ggplot(aes(x = nivel)) +
-  geom_bar()
+  geom_bar() +
+  ggtitle("Distribuição das universidades para cada nível de avaliação da CAPES") +
+  labs(x = "Nível do Programa de Pós-Graduação", y = "Quantidade de Universidades")
 ```
 
 Como visto anteriormente, __a maior parte dos programas de pós-graduação apresentam os níveis 3 e 4__. Há apenas 5 programas com nível 5. __É interessante observar que há mais programas de nível 7 do que 6 (5 contra 3, respectivamente)__.
@@ -129,7 +136,9 @@ dados %>%
   top_n(10, dissertacoes) %>%
   ggplot(aes(x = reorder(instituicao, dissertacoes), y = dissertacoes)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Ranking de dissertações") +
+  labs(x = "Universidade", y = "Quantidade de Dissertações")
 ```
 
 __A UFPE é a universidade brasileira que mais produz dissertações de Mestrado no país (+400), produzindo mais que o dobro da segunda colocada, a USP (São Carlos)__.
@@ -141,43 +150,51 @@ dados %>%
   top_n(10, teses) %>%
   ggplot(aes(x = reorder(instituicao, teses), y = teses)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Ranking de teses") +
+  labs(x = "Universidade", y = "Quantidade de Teses")
 ```
 
 Nesse caso, ocorre o inverso, com a USP (São Carlos) à frente da UFPE. Porém, a quantidade de teses produzidas é bem mais parecida entre as duas universidades.
 
 Qual a universidade que mais publica artigos em conferência?
 
-```{r, fig.align="center"}
+```{r, fig.align="center", fig.width=9}
 dados %>%
   top_n(10, artigos_conf) %>%
   ggplot(aes(x = reorder(instituicao, artigos_conf), y = artigos_conf)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Ranking de Artigos em Conferência") +
+  labs(x = "Universidade", y = "Quantidade de Artigos em Conferência")
 ```
 
 De forma individual, __a USP de São Carlos é a universidade responsável pelo maior número de publicações em  conferências__. Porém, __a UFPE aparece com um número maior quando somados os dois programas de pós-graduação__ (_stricto sensu_ e profisional).
 
 Quero agora saber a respeito das publicações em periódicos. Primeiramente, quero analisar as publicações dos periódicos fora do Qualis restrito (B2 a B5):
 
-```{r, fig.align="center"}
+```{r, fig.align="center", fig.width=10}
 dados %>%
   top_n(10, periodicos_qualis) %>%
   ggplot(aes(x = reorder(instituicao, periodicos_qualis), y = periodicos_qualis)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Ranking de Artigos publicados em Periódicos (B2-B5)") +
+  labs(x = "Universidade", y = "Quantidade de Artigos publicados em Periódicos (B2-B5)")
 ```
 
 Novamente, __a USP (São Carlos) lidera o ranking__, com aproximadamente o dobro da segunda colocada, a UniCamp. A __UFRJ publica aproximadamente 200 artigos quando considerados os dois programas da pós-graduação__ (_Informática_ e _Engenharia de Sistemas e Computação_).
 
 Por fim, quero fazer a mesma análise, porém para os artigos publicados em periódicos no Qualis restrito:
 
-```{r, fig.align="center"}
+```{r, fig.align="center", fig.width=10}
 dados %>%
   top_n(10, periodicos_restrito) %>%
   ggplot(aes(x = reorder(instituicao, periodicos_restrito), y = periodicos_restrito)) +
   geom_bar(stat = "identity") +
-  coord_flip()
+  coord_flip() +
+  ggtitle("Ranking de Artigos publicados em Periódicos (A1-B1)") +
+  labs(x = "Universidade", y = "Quantidade de Artigos publicados em Periódicos (A1-B1)")
 ```
 
 Mais uma vez, __a USP de São Carlos encabeça o ranking, seguido pela UFPE se considerarmos os dois programas de pós-graduação descritos anteriormente__.
@@ -189,42 +206,58 @@ Para finalizar a análise descritiva, quero analisar a disposição das variáve
 ```{r, fig.width=12}
 plot_nivel <- dados %>%
   ggplot(aes(x = 0, y = nivel)) +
-  geom_point(alpha = 0.3) 
+  geom_point(alpha = 0.3) +
+  ggtitle("Nível") +
+  labs(x="", y="")
 
 plot_colaboradores <- dados %>%
   ggplot(aes(x = 0, y = colaboradores)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01))  +
+  ggtitle("Colaboradores") +
+  labs(x="", y="")
 
 plot_permanentes <- dados %>%
   ggplot(aes(x = 0, y = permanentes)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01))  +
+  ggtitle("Permanentes") +
+  labs(x="", y="")
 
 plot_artigos_conf <- dados %>%
   ggplot(aes(x = 0, y = artigos_conf)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01))  +
+  ggtitle("Artigos em Conf.") +
+  labs(x="", y="")
 
 plot_dissertacoes <- dados %>%
   ggplot(aes(x = 0, y = dissertacoes)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01))  +
+  ggtitle("Dissertações") +
+  labs(x="", y="")
 
 plot_teses <- dados %>%
   ggplot(aes(x = 0, y = teses)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01))  +
+  ggtitle("Teses") +
+  labs(x="", y="")
 
 plot_per_qualis <- dados %>%
   ggplot(aes(x = 0, y = periodicos_qualis)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01))  +
+  ggtitle("Periódicos (B2-B5)") +
+  labs(x="", y="")
 
 plot_per_restrito <- dados %>%
   ggplot(aes(x = 0, y = periodicos_restrito)) +
   geom_boxplot() +
-  geom_point(alpha = 0.5, position = position_jitter(width = 0.01)) 
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.01))  +
+  ggtitle("Periódicos (A1-B1)") +
+  labs(x="", y="")
 
 multiplot(plot_nivel, plot_colaboradores, plot_permanentes, plot_artigos_conf, plot_dissertacoes, plot_teses, plot_per_qualis, plot_per_restrito, cols = 4)
 ```
@@ -245,7 +278,7 @@ dados_pro <- dados %>%
          periodicos_qualis = as.vector(scale(periodicos_qualis+1)),
          periodicos_restrito = as.vector(scale(periodicos_restrito+1)))
 
-dados_pro %>% head()
+dados_pro %>% head() %>% kable()
 ```
 
 ## 2.1 Clusterização Hierárquica
@@ -287,21 +320,22 @@ atribuicoes %>%
   ggparcoord(columns = c(1:8), groupColumn="grupo", scale = "globalminmax") +
   facet_grid(paste("Grupo ", grupo) ~ .) +
   theme(legend.position = "none") +
-  scale_y_continuous(breaks=c(0, 2, 4, 6))
+  scale_y_continuous(breaks=c(0, 2, 4, 6)) +
+  labs(x = "Variável", y = "Z-score")
 ```
 
 De acordo com o gráfico acima, eu nomearia os grupos da seguinte maneira (fazendo analogia ao campeonato brasileiro):
 
-__Grupo 1__: _Série B_ (Universidades que brigam para subir)
+__Grupo 1__: _Série B_ (Universidades que brigam para subir)  
 Universidades de nível 3-5, poucos colaboradores e o restante das variáveis na média geral;
 
-__Grupo 2__: _Série C_ (Universidades que querem se tornar "profissionais")
+__Grupo 2__: _Série C_ (Universidades que querem se tornar "profissionais")   
 Universidades de nível 3-4, com mais colaboradores que as do _Grupo 1_, porém almejam o Doutorado (Série B) em sua maioria.
 
-__Grupo 3__: _Série D_ (Várzea)
+__Grupo 3__: _Série D_ (Várzea)   
 Universidades de nível 3, sem Doutorado, e com a maioria das variáveis abaixo da média.
 
-__Grupo 4__: _Série A_ (Universidades supra-sumo)
+__Grupo 4__: _Série A_ (Universidades supra-sumo)   
 Universidades de nível 6-7, com alto nível de produção científica em geral.
 
 Vamos agora visualizar alguns integrantes desses grupos:
@@ -313,25 +347,29 @@ dados_hclust <- atribuicoes %>%
 
 dados_hclust %>%
   filter(grupo == 1) %>%
-  head(10)
+  head(10) %>%
+  kable()
 ```
 
 ```{r}
 dados_hclust %>%
   filter(grupo == 2) %>%
-  head(10)
+  head(10) %>%
+  kable()
 ```
 
 ```{r}
 dados_hclust %>%
   filter(grupo == 3) %>%
-  head(10)
+  head(10) %>%
+  kable()
 ```
 
 ```{r}
 dados_hclust %>%
   filter(grupo == 4) %>%
-  head(10)
+  head(10) %>%
+  kable()
 ```
 
 É interessante notar que a UFPB e UFCG estão situadas no _Grupo 2_.
@@ -352,7 +390,8 @@ explorando_k %>%
   ggplot(aes(x = k, y = tot.withinss)) +
   geom_line() +
   geom_point() +
-  scale_x_continuous(breaks=c(2:12))
+  scale_x_continuous(breaks=c(2:12)) +
+  ggtitle("Tot.whithinss para diferentes k")
 ```
 
 Pelo gráfico, podemos ver que o valor de _tot.withinss_ descresce bastante de 2 para 3 clusters e de 3 para 4 clusters. De 4 clusters em diante, esse valor descrece pouco. Logo, por esse grafico, podemos definir 4 clusters como a quantidade de clusters "ideal".
@@ -364,7 +403,8 @@ explorando_k %>%
   ggplot(aes(x = k, y = betweenss/totss)) +
   geom_line() +
   geom_point() +
-  scale_x_continuous(breaks = c(2:12))
+  scale_x_continuous(breaks = c(2:12)) +
+  ggtitle("Betweenss/totsss para diferentes k")
 ```
 
 Esse gráfico apresenta um comportamente parecido com o anterior. Novamente, a escolha de 4 clusters é a mais sensata.
@@ -382,23 +422,23 @@ km %>%
   select(-instituicao) %>%
   ggparcoord(columns = c(1:8), groupColumn = ".cluster", scale = "globalminmax") +
   facet_grid(paste("Grupo ", .cluster) ~ .) +
-  ylab("Z-score") +
   theme(legend.position = "none") +
-  scale_y_continuous(breaks = c(0, 2, 4, 6))
+  scale_y_continuous(breaks = c(0, 2, 4, 6)) +
+  labs(x = "Variável", y = "Z-score")
 ```
 
 Seguindo a mesma ideia dos grupos da clusterização hierárquica, eu nomearia os grupos da seguinte forma:
 
-__Grupo 1__: _Série D_ (Várzea)
+__Grupo 1__: _Série D_ (Várzea)   
 Universidades de nível 3 e 4, sem Doutorado ou pouco produtivo, e com a maioria das variáveis abaixo da média de maneira geral.
 
-__Grupo 2__: _Fora do padrão_ (Universidades modelo)
+__Grupo 2__: _Fora do padrão_ (Universidades modelo)  
 Universidades de nível 6, com todas as variáveis bem acima da média. Altíssimoo nível de produção científica.
 
-__Grupo 3__: _Série B_
+__Grupo 3__: _Série B_  
 Universidades de nível 3-5, e acima da média de maneira geral.
 
-__Grupo 4__: _Série A_ 
+__Grupo 4__: _Série A_  
 Universidades de nível 5-7, poucos colabores em sua maioria, mas com nível de produção científica acima da média
 
 Ao meu ver, os grupos 1, 3 e 4 são bastante parecidos com os grupos equivalentes da clusterização hierárquica.
@@ -411,25 +451,29 @@ dados_km <- km %>%
 
 dados_km %>% 
   filter(.cluster == 1) %>%
-  head(10)
+  head(10) %>%
+  kable()
 ```
 
 ```{r}
 dados_km %>%
   filter(.cluster == 2) %>%
-  head()
+  head() %>%
+  kable()
 ```
 
 ```{r}
 dados_km %>%
   filter(.cluster == 3) %>%
-  head(10)
+  head(10) %>%
+  kable()
 ```
 
 ```{r}
 dados_km %>%
   filter(.cluster == 4) %>%
-  head(7)
+  head(7) %>%
+  kable()
 ```
 
 Interessante notar as universidades do __Grupo 2__, mesmo não sendo nível 7, elas se destacam como as universidades com alto padrão de produção científica. A UFPB e UFCG, agora, aparecem na _Série B_.
@@ -446,7 +490,7 @@ dados_pca <- dados_pro %>%
   select(-instituicao) %>%
   prcomp(scale = FALSE)
 
-as.data.frame(dados_pca$rotation)
+as.data.frame(dados_pca$rotation)  %>% kable()
 ```
 
 ```{r, fig.align="center"}
@@ -454,7 +498,9 @@ tidy(dados_pca, "pcs") %>%
   ggplot(aes(x = PC, y = cumulative, label = cumulative)) +
   geom_line() +
   geom_point() +
-  geom_text(vjust = 1, hjust = -.1)
+  geom_text(vjust = 1, hjust = -.1) +
+  ggtitle("Variância explicada pelos Principais Componentes") +
+  labs(x = "Principais Componentes", y = "Variância explicada cumulativa")
 ```
 
 Pelo gráfico, podemos ver que o primeiro autovetor (PC1) contém aproximadamente 74,78% de toda informação. Os dois primeiros autovetores, que iremos utilizar no restante dessa análise, por sua vez, armazenama aproximadamente 87% de toda informação.
@@ -468,7 +514,9 @@ dados_pca %>%
   augment(dados_pro_aug) %>%
   ggplot(aes(x = .fittedPC1, y = .fittedPC2, color = .cluster)) +
   geom_point(alpha = 0.8) +
-  labs(color = "Grupo")
+  labs(color = "Grupo") +
+  ggtitle("Projeção dos dados em duas dimensões pelo PCA") +
+  labs(x = "PC1", y = "PC2")
 ```
 
 É possivel observar que, ao menos nesses dois componentes, nossos dados aparentam realmente ter 4 grupos. É importante destacar as duas universidades do _Grupo 2_, que estão significantemente afastadas dos demais grupos (canto superior-meio-esquerdo).
@@ -517,10 +565,11 @@ dados_tsne <- cbind(dados_pro_aug, df)
 dados_tsne %>%
   ggplot(aes(x = V1, y = V2, color = .cluster)) +
   geom_point(alpha = 0.8) +
-  labs(color = "Grupo")
+  labs(color = "Grupo") +
+  ggtitle("Projeção dos dados em duas dimensões pelo t-SNE")
 ```
 
-Podemos observar que as universidades do _Grupo 2_ se situam bem mais próximos dos demais grupos agora que em relação aos resultado obtido com o PCA. Interessante notar que onde $V1 > 0$ e $V2 > 0$, praticamente só há dados do _Grupo 1_. Comportamente, este, bem diferente do resultado do PCA.
+Podemos observar que as universidades do _Grupo 2_ se situam bem mais próximos dos demais grupos agora que em relação aos resultado obtido com o PCA. Interessante notar que onde $V1 > 0$ e $V2 > 0$, praticamente só há dados do _Grupo 1_. Comportamento, este, bem diferente do resultado do PCA.
 
 Por fim, o mesmo gráfico de forma interativa:
 
