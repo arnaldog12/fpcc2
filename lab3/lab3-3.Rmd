@@ -115,7 +115,7 @@ dados %>%
 
 Ao analisar as variáveis de forma individual (diagonal principal), podemos ver que __praticamente todas as variáveis apresentam uma distribuição à esquerda com cauda longa à direita__. É importante destacar que a variável _nível_ apresenta uma distribuição bimodal, devido ao fato de existirem mais programas de pós-graduação com níveis mais baixos (3 e 4). 
 
-Por outro lado, quando analisamos as variáveis aos pares, podemos ver que existem bastante correlações fortes (> 0.7) entre as variáveis. __A maior correlação é observada entre a quantidade de periódicos publicados no Qualis restrito e nos demais Qualis (0.925), ou seja, quanto mais se publica periódicos em eventos com Qualis restrito, mais se publica nos demais Qualis__. Obviamente, isso não representa uma causalidade, mas, de certa forma, é um comportamento esperado. __Também pode-se observar forte correlação entre a quantidade artigos publicados em periódicos com Qualis restrito e a docentes permanentes (0.901) e artigos publicados em conferências (0.904)__.
+Por outro lado, quando analisamos as variáveis aos pares, podemos ver que existem bastante correlações fortes (> 0.7) entre as variáveis. __A maior correlação é observada entre a quantidade de periódicos publicados no Qualis restrito e nos demais Qualis (0.925), ou seja, quanto mais se publica periódicos em eventos com Qualis restrito, mais se publica nos demais Qualis__. Obviamente, isso não representa uma causalidade, mas, de certa forma, é um comportamento esperado. __Também pode-se observar forte correlação entre a quantidade artigos publicados em periódicos com Qualis restrito e docentes permanentes (0.901) e artigos publicados em conferências (0.904)__.
 
 Agora, quero fazer algumas visualizações. Primeiramente, quero analisar a distribuição dos níveis dos programas de pós-graduação do país:
 
@@ -169,7 +169,7 @@ dados %>%
   labs(x = "Universidade", y = "Quantidade de Artigos em Conferência")
 ```
 
-De forma individual, __a USP de São Carlos é a universidade responsável pelo maior número de publicações em  conferências__. Porém, __a UFPE aparece com um número maior quando somados os dois programas de pós-graduação__ (_stricto sensu_ e profisional).
+De forma individual, __a USP de São Carlos é a universidade responsável pelo maior número de publicações em  conferências__, seguida pela UFMG.
 
 Quero agora saber a respeito das publicações em periódicos. Primeiramente, quero analisar as publicações dos periódicos fora do Qualis restrito (B2 a B5):
 
@@ -183,7 +183,7 @@ dados %>%
   labs(x = "Universidade", y = "Quantidade de Artigos publicados em Periódicos (B2-B5)")
 ```
 
-Novamente, __a USP (São Carlos) lidera o ranking__, com aproximadamente o dobro da segunda colocada, a UniCamp. A __UFRJ publica aproximadamente 200 artigos quando considerados os dois programas da pós-graduação__ (_Informática_ e _Engenharia de Sistemas e Computação_).
+Novamente, __a USP (São Carlos) lidera o ranking__, com aproximadamente o dobro da segunda colocada, a UNICAMP.
 
 Por fim, quero fazer a mesma análise, porém para os artigos publicados em periódicos no Qualis restrito:
 
@@ -197,7 +197,7 @@ dados %>%
   labs(x = "Universidade", y = "Quantidade de Artigos publicados em Periódicos (A1-B1)")
 ```
 
-Mais uma vez, __a USP de São Carlos encabeça o ranking, seguido pela UFPE se considerarmos os dois programas de pós-graduação descritos anteriormente__.
+Mais uma vez, __a USP de São Carlos encabeça o ranking, seguido pela UFRGS__.
 
 É válido destacar que, de maneira geral, algumas das universidades mostradas nos gráficos acima aparecem em praticamente todos os gráficos. Talvez isso indique algum grupo que vamos encontrar no agrupamento que iremos realizar.
 
@@ -266,7 +266,7 @@ Pelo gráfico acima, conseguimos confirmar que as variáveis se concentram na pa
 
 # 2. Clusterização
 
-Antes de efetuarmos a clusterização, vou efetuar a __padronização__ dos dados. Como visto no checkpoint anterior, isso é de extrema imoportância para evitar que variáveis com range grande se sobreponham sobre as variáveis de baixo range de valores.
+Antes de efetuarmos a clusterização, vou efetuar a __padronização__ dos dados. Como visto no checkpoint anterior, isso é de extrema importância para evitar que variáveis com range grande se sobreponham sobre as variáveis de baixo range de valores.
 
 ```{r}
 dados_pro <- dados %>%
@@ -308,7 +308,7 @@ Vamos agora plotar o gráfico de silhueta. Eu testei o gráfico para 3 e 4 grupo
 plot(silhouette(cutree(clust_hier, k = 4), distancias))
 ```
 
-Pode-se perceber pelo gráfico acima que os 4 grupos possuem entre 8 e 28 universidades. Ademais, a maior parte dos pontos estão bem alocados em seus grupos. O grupo 3 é o grupo com o melhor alocamento de pontos, enquanto o grupo 2 apresenta a maior dúvida sobre a alocação de alguns de seus pontos.
+Pode-se perceber pelo gráfico acima que os 4 grupos possuem entre 8 e 28 universidades. Ademais, a maior parte dos pontos estão bem alocados em seus grupos. O _Grupo 3_ é o grupo com o melhor alocamento de pontos, enquanto o _Grupo 2_ apresenta a maior dúvida sobre a alocação de alguns de seus pontos.
 
 Tendo em vista que clusterizamos as universidades em 4 grupos pelo algoritmo de clusterização hierárquica, vamos agora analisar as características de cada um dos grupos e distingui-los:
 
@@ -433,7 +433,7 @@ __Grupo 1__: _Série D_ (Várzea)
 Universidades de nível 3 e 4, sem Doutorado ou pouco produtivo, e com a maioria das variáveis abaixo da média de maneira geral.
 
 __Grupo 2__: _Fora do padrão_ (Universidades modelo)  
-Universidades de nível 6, com todas as variáveis bem acima da média. Altíssimoo nível de produção científica.
+Universidades de nível 6, com todas as variáveis bem acima da média. Altíssimo nível de produção científica.
 
 __Grupo 3__: _Série B_  
 Universidades de nível 3-5, e acima da média de maneira geral.
@@ -476,9 +476,9 @@ dados_km %>%
   kable()
 ```
 
-Interessante notar as universidades do __Grupo 2__, mesmo não sendo nível 7, elas se destacam como as universidades com alto padrão de produção científica. A UFPB e UFCG, agora, aparecem na _Série B_.
+Interessante notar as universidades do _Grupo 2_, mesmo não sendo nível 7, elas se destacam como as universidades com alto padrão de produção científica. A UFPB e UFCG, agora, aparecem na _Série B_.
 
-Na próxima seção, vamos reduzir as 8 dimensões que temos - utilizando PCA e t-SNE - para apenas 2 e visualizar os resultados do clusterização pelo K-means.
+Na próxima seção, vamos reduzir as 8 dimensões que temos para apenas 2 - utilizando PCA e t-SNE - e visualizar os resultados do clusterização pelo K-means.
 
 # 3. Redução da Dimensionalidade
 ## 3.1 Principal Component Analysis (PCA)
@@ -503,7 +503,7 @@ tidy(dados_pca, "pcs") %>%
   labs(x = "Principais Componentes", y = "Variância explicada cumulativa")
 ```
 
-Pelo gráfico, podemos ver que o primeiro autovetor (PC1) contém aproximadamente 74,78% de toda informação. Os dois primeiros autovetores, que iremos utilizar no restante dessa análise, por sua vez, armazenama aproximadamente 87% de toda informação.
+Pelo gráfico, podemos ver que __o primeiro autovetor (PC1) contém aproximadamente 74,78% de toda informação. Os dois primeiros autovetores, que iremos utilizar no restante dessa análise, por sua vez, armazenama aproximadamente 87% de toda informação__.
 
 O próximo grafo projeta os nossos dados (8-dimensional) nos dois primeiros autovetores:
 
@@ -545,7 +545,7 @@ Por fim, vamos plotar os vetores de nossas variáveis sobre os componentes princ
 autoplot(dados_pca, label = F, label.size = 3, shape = T, colour = km$cluster, loadings = TRUE, loadings.color = 'red', loadings.label = TRUE, loadings.label.size = 3, loadings.label.hjust=1.1)
 ```
 
-Pode-se ver que todos as variáveis decrescem à medida que PC1 descresce - como observado quando visualizamos os componentes principais. Isso indica uma forte correlação entre as variáveis. Realmente, isso foi observado quando plotamos o gráfico de pares (ver [Análise Descritiva](#analise)). Porém, em relação a PC2, algumas variáveis crescem à medida que PC2 cresce (ex.: _colaboradores_, _dissertacoes_) e outras decrescem à medida que PC2 decresce (ex.: _nivel_ e *periodicos_restrito*).
+Pode-se ver que todos as variáveis decrescem à medida que PC1 descresce - como observado quando visualizamos os componentes principais. Isso indica uma forte correlação entre as variáveis. Realmente, isso foi observado quando plotamos o gráfico de pares (ver [Análise Descritiva](#analise)). Porém, em relação a PC2, algumas variáveis crescem à medida que PC2 cresce (ex.: _colaboradores_ e _dissertacoes_) e outras decrescem à medida que PC2 decresce (ex.: _nivel_ e *periodicos_restrito*).
 
 ## 3.2 t-SNE
 
@@ -569,7 +569,7 @@ dados_tsne %>%
   ggtitle("Projeção dos dados em duas dimensões pelo t-SNE")
 ```
 
-Podemos observar que as universidades do _Grupo 2_ se situam bem mais próximos dos demais grupos agora que em relação aos resultado obtido com o PCA. Interessante notar que onde $V1 > 0$ e $V2 > 0$, praticamente só há dados do _Grupo 1_. Comportamento, este, bem diferente do resultado do PCA.
+Podemos observar que as universidades do _Grupo 2_ se situam bem mais próximos dos demais grupos agora que em relação aos resultado obtido com o PCA. Interessante notar que onde $V1 > 0$ e $V2 > 0$, praticamente só há pontos do _Grupo 1_. Comportamento, este, bem diferente do resultado do PCA.
 
 Por fim, o mesmo gráfico de forma interativa:
 
