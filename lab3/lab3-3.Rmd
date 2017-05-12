@@ -11,9 +11,6 @@ O objetivo do checkpoint 3 do Lab 3 é realizar novamente a clusterização de a
 
 Para esse checkpoint, foram utilizados dados quantitativos que a CAPES utiliza na avaliação dos programas de pós-graduação em Ciência da Computação segundo o Comitê de Avaliação. Os dados foram coletados da Plataforma Sucupira, e incluem quantificações da produção de artigos, dissertações e teses nos últimos 4 anos para os diferentes PPGs.
 
-
-Escolha bem as suas variáveis, transformações, normalização, etc., e faça um descritivo das variáveis antes de começar. Também lembre de comentar os grupos encontrados e, principalmente para essa parte do problema, as relações entre as dimensões que você encontrou via PCA e as variáveis originais. Sempre comente também os padrões interessantes que você encontrar.
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -36,7 +33,7 @@ require(Rtsne, quietly = TRUE)
 source('multiplot.R')
 ```
 
-# 1. Análise Descritiva
+# 1. Análise Descritiva {analise}
 
 Primeiramente, vou carregar os dados e ter uma noção do seus valores:
 
@@ -59,7 +56,7 @@ Logo, além dessas duas variáveis, para essa análise, também considerarei out
 * **dissertacoes**: quantidade de dissertações de Mestrado;
 * **teses**: quantidade de teses de Doutorado;
 
-Para fins de visualização, também vou armazenar o nome da instituição.
+Para fins de visualização, também vou armazenar o nome da instituição juntamente com sua sigla correspondente.
 
 ```{r}
 dados <- dados_all %>%
@@ -159,7 +156,7 @@ dados %>%
   coord_flip()
 ```
 
-De forma individual, a USP de São Carlos é a universidade responsável pelo maior número de publicações em  conferências. Porém, a UFPE aparece com um número maior devido quando somados os dois programas de pós-graduação (_stricto sensu_ e profisional).
+De forma individual, __a USP de São Carlos é a universidade responsável pelo maior número de publicações em  conferências__. Porém, __a UFPE aparece com um número maior quando somados os dois programas de pós-graduação__ (_stricto sensu_ e profisional).
 
 Quero agora saber a respeito das publicações em periódicos. Primeiramente, quero analisar as publicações dos periódicos fora do Qualis restrito (B2 a B5):
 
@@ -171,7 +168,7 @@ dados %>%
   coord_flip()
 ```
 
-Novamente, a USP (São Carlos) lidera o ranking, com aproximadamente o dobro da segunda colocada, a UniCamp. A UFRJ publica aproximadamente 200 artigos quando considerados os dois programas da pós-graduação (_Informática_ e _Engenharia de Sistemas e Computação_).
+Novamente, __a USP (São Carlos) lidera o ranking__, com aproximadamente o dobro da segunda colocada, a UniCamp. A __UFRJ publica aproximadamente 200 artigos quando considerados os dois programas da pós-graduação__ (_Informática_ e _Engenharia de Sistemas e Computação_).
 
 Por fim, quero fazer a mesma análise, porém para os artigos publicados em periódicos no Qualis restrito:
 
@@ -183,7 +180,7 @@ dados %>%
   coord_flip()
 ```
 
-Mais uma vez, a USP de São Carlos encabeça o ranking, seguido pela UFPE se considerarmos os dois programas de pós-graduação descritos anteriormente.
+Mais uma vez, __a USP de São Carlos encabeça o ranking, seguido pela UFPE se considerarmos os dois programas de pós-graduação descritos anteriormente__.
 
 É válido destacar que, de maneira geral, algumas das universidades mostradas nos gráficos acima aparecem em praticamente todos os gráficos. Talvez isso indique algum grupo que vamos encontrar no agrupamento que iremos realizar.
 
@@ -337,11 +334,11 @@ dados_hclust %>%
   head(10)
 ```
 
-É interessante notar que a UFPB e UFCG estão situadas no Grupo 2.
+É interessante notar que a UFPB e UFCG estão situadas no _Grupo 2_.
 
 ## 2.2 K-Means
 
-Agora vou utilizar o K-means para clusterização. Vou começar analisando o valor de _tot.withinss_ para o K-means aplicado de 2 a 12 grupos. O valor de _tot.withinss_ representa o somatório dos quadrados das distâncias de cada ponto em cluster $c_i$ para o centro do cluster. Esse valor tende a zero quando o número de clusters é igual ao número de pontos.
+Agora vou utilizar o K-means para clusterização. Vou começar analisando o valor de _tot.withinss_ para o K-means aplicado de 2 a 12 grupos. O valor de _tot.withinss_ representa o somatório dos quadrados das distâncias de cada ponto em cluster $c_i$ para o centro do seu cluster. Esse valor tende a zero quando o número de clusters é igual ao número de pontos.
 
 ```{r, fig.align="center"}
 set.seed(1234)
@@ -360,7 +357,7 @@ explorando_k %>%
 
 Pelo gráfico, podemos ver que o valor de _tot.withinss_ descresce bastante de 2 para 3 clusters e de 3 para 4 clusters. De 4 clusters em diante, esse valor descrece pouco. Logo, por esse grafico, podemos definir 4 clusters como a quantidade de clusters "ideal".
 
-Podemos também analisar também a proporção entre as distâncias dos centróides dos clusters em relação ao centróide dos pontos, e a distância de todos os pontos para o centróide dos pontos:
+Podemos também analisar também a proporção entre as distâncias dos centróides dos clusters em relação ao centróide de todos os pontos, e a distância de todos os pontos para o centróide dos pontos:
 
 ```{r, fig.align="center"}
 explorando_k %>%
@@ -395,7 +392,7 @@ Seguindo a mesma ideia dos grupos da clusterização hierárquica, eu nomearia o
 __Grupo 1__: _Série D_ (Várzea)
 Universidades de nível 3 e 4, sem Doutorado ou pouco produtivo, e com a maioria das variáveis abaixo da média de maneira geral.
 
-__Grupo 1__: _Fora do padrão_ (Universidades modelo)
+__Grupo 2__: _Fora do padrão_ (Universidades modelo)
 Universidades de nível 6, com todas as variáveis bem acima da média. Altíssimoo nível de produção científica.
 
 __Grupo 3__: _Série B_
@@ -435,10 +432,14 @@ dados_km %>%
   head(7)
 ```
 
-Interessante notar as universidades do __Grupo 2__. A UFPB e UFCG, agora, aparecem na _Série B_.
+Interessante notar as universidades do __Grupo 2__, mesmo não sendo nível 7, elas se destacam como as universidades com alto padrão de produção científica. A UFPB e UFCG, agora, aparecem na _Série B_.
+
+Na próxima seção, vamos reduzir as 8 dimensões que temos - utilizando PCA e t-SNE - para apenas 2 e visualizar os resultados do clusterização pelo K-means.
 
 # 3. Redução da Dimensionalidade
 ## 3.1 Principal Component Analysis (PCA)
+
+Primeiramente, vamos utilizar o PCA. Vamos começar analisando os componentes principais e variância explicada pelos componentes:
 
 ```{r}
 dados_pca <- dados_pro %>%
@@ -456,6 +457,10 @@ tidy(dados_pca, "pcs") %>%
   geom_text(vjust = 1, hjust = -.1)
 ```
 
+Pelo gráfico, podemos ver que o primeiro autovetor (PC1) contém aproximadamente 74,78% de toda informação. Os dois primeiros autovetores, que iremos utilizar no restante dessa análise, por sua vez, armazenama aproximadamente 87% de toda informação.
+
+O próximo grafo projeta os nossos dados (8-dimensional) nos dois primeiros autovetores:
+
 ```{r, fig.width=12}
 dados_pro_aug <- km %>% augment(dados)
 
@@ -463,8 +468,12 @@ dados_pca %>%
   augment(dados_pro_aug) %>%
   ggplot(aes(x = .fittedPC1, y = .fittedPC2, color = .cluster)) +
   geom_point(alpha = 0.8) +
-  theme(legend.position = "none")
+  labs(color = "Grupo")
 ```
+
+É possivel observar que, ao menos nesses dois componentes, nossos dados aparentam realmente ter 4 grupos. É importante destacar as duas universidades do _Grupo 2_, que estão significantemente afastadas dos demais grupos (canto superior-meio-esquerdo).
+
+Vamos visualizar o mesmo grafo de forma interativa:
 
 ```{r, fig.width=12}
 p = dados_pca %>%
@@ -482,11 +491,19 @@ p = dados_pca %>%
 p
 ```
 
+Por fim, vamos plotar os vetores de nossas variáveis sobre os componentes principais:
+
 ```{r, fig.width=12}
 autoplot(dados_pca, label = F, label.size = 3, shape = T, colour = km$cluster, loadings = TRUE, loadings.color = 'red', loadings.label = TRUE, loadings.label.size = 3, loadings.label.hjust=1.1)
 ```
 
+Pode-se ver que todos as variáveis decrescem à medida que PC1 descresce - como observado quando visualizamos os componentes principais. Isso indica uma forte correlação entre as variáveis. Realmente, isso foi observado quando plotamos o gráfico de pares (ver [Análise Descritiva](#analise)). Porém, em relação a PC2, algumas variáveis crescem à medida que PC2 cresce (ex.: _colaboradores_, _dissertacoes_) e outras decrescem à medida que PC2 decresce (ex.: _nivel_ e *periodicos_restrito*).
+
 ## 3.2 t-SNE
+
+Nesta última seção, vamos reduzir a dimensionalidade utilizando o algoritmo conhecido como t-SNE e comparar os resultados obtido com o PCA.
+
+Reduzindo a dimensionalidade dos nossos dados com o t-SNE, temos:
 
 ```{r, fig.width=12}
 set.seed(1234)
@@ -500,9 +517,12 @@ dados_tsne <- cbind(dados_pro_aug, df)
 dados_tsne %>%
   ggplot(aes(x = V1, y = V2, color = .cluster)) +
   geom_point(alpha = 0.8) +
-  theme(legend.position = "none")
+  labs(color = "Grupo")
 ```
 
+Podemos observar que as universidades do _Grupo 2_ se situam bem mais próximos dos demais grupos agora que em relação aos resultado obtido com o PCA. Interessante notar que onde $V1 > 0$ e $V2 > 0$, praticamente só há dados do _Grupo 1_. Comportamente, este, bem diferente do resultado do PCA.
+
+Por fim, o mesmo gráfico de forma interativa:
 
 ```{r}
 p <- dados_tsne %>%
