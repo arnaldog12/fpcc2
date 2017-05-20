@@ -1,0 +1,79 @@
+---
+title: "Lab 4 - Checkpoint 1"
+author: "Arnaldo Gualberto"
+date: "20/05/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 0. Includes e Settings
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+library(lubridate, warn.conflicts = FALSE)
+library(readr)
+source("multiplot.R")
+```
+
+# 1. Carregamento e limpeza dos dados
+```{r}
+dados_github <- read_csv("data/github-data.csv")
+names(dados_github) <- c("extensao", "dia", "mes", "ano", "usuarios")
+glimpse(dados_github)
+```
+
+```{r}
+dados_clean <- dados_github %>%
+  mutate(data = ymd(paste(ano, mes, dia)), dia_da_semana = wday(data, label = T))
+
+glimpse(dados_clean)
+```
+
+# 2. Análise Descritiva
+
+```{r, fig.width=12, fig.height=6}
+dados_python <- dados_clean %>%
+  filter(extensao == "py")
+
+summary(dados_python)
+```
+
+```{r}
+dados_ttf <- dados_clean %>%
+  filter(extensao == "ttf")
+
+summary(dados_ttf)
+```
+
+```{r, fig.width=12}
+dados_py_ttf <- dados_clean %>%
+  filter(extensao == "py" | extensao == "ttf")
+
+dados_py_ttf %>%
+  group_by(extensao, ano, mes) %>%
+  summarise(total = sum(usuarios)) %>%
+  ggplot(aes(x = paste(ano, sprintf("%02d", mes)), y = total, fill = extensao)) +
+  geom_bar(stat = "identity", position = "dodge")
+
+```
+
+
+```{r, fig.width=12}
+plot_python <- dados_python %>%
+  group_by(dia_da_semana) %>%
+  summarise(total_usuarios = sum(usuarios)) %>%
+  ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
+  geom_bar(stat = "identity")
+
+plot_ttf <- dados_ttf %>%
+  group_by(dia_da_semana) %>%
+  summarise(total_usuarios = sum(usuarios)) %>%
+  ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
+  geom_bar(stat = "identity")
+
+multiplot(plot_python, plot_ttf, cols = 2)
+```
+
