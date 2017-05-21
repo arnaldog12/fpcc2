@@ -101,17 +101,7 @@ plot_c <- dados_c %>%
 multiplot(plot_python, plot_c, cols = 2)
 ```
 
-```{r}
-plot_python <- dados_python %>%
-  ggplot(aes(x = dia_da_semana, y = usuarios)) +
-  geom_point(alpha = 0.2)
 
-plot_c <- dados_c %>%
-  ggplot(aes(x = dia_da_semana, y = usuarios)) +
-  geom_point(alpha = 0.2)
-
-multiplot(plot_python, plot_c, cols = 2)
-```
 
 ```{r}
 dados_py_c %>%
@@ -157,39 +147,30 @@ Como os dados que temos representam apenas uma amostra da população, teremos d
 
 ## 3.1 Comparação da popularidade entre fim de semana e dias de semana para cada linguagem
 
-```{r}
-repeticoes = 4000
 
-exp_com_bootstrap <- function(x)
-{
-  boot_x <- sample(x, size = NROW(x), replace = TRUE) # aqui é o bootstrap
-  return(mean(boot_x))
-}
-
-experimentos = data_frame(i = 1:repeticoes) %>%
-  rowwise() %>%
-  mutate(media_exp = exp_com_bootstrap(dados_python_fds$usuarios))
-
-experimentos %>%
-  ggplot(aes(x = media_exp)) +
-  geom_histogram(binwidth = 1)
-```
 
 ```{r, fig.width=12, fig.height=4}
 mean.python_fds = bootstrap(dados_python_fds, mean(usuarios), R = 4000)
 mean.python_dds = bootstrap(dados_python_dds, mean(usuarios), R = 4000)
 
+ci.python_fds = mean.python_fds %>% CI.bca(probs = c(.025, .975))
+ci.python_dds = mean.python_dds %>% CI.bca(probs = c(.025, .975))
+
 plot_python_fds <- mean.python_fds$replicates %>%
   as.data.frame() %>%
   ggplot(aes(x = `mean(usuarios)`)) +
   geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_python_fds$usuarios), color = 'green')
+  geom_vline(xintercept = mean(dados_python_fds$usuarios), color = 'green') +
+  geom_vline(xintercept = as.vector(ci.python_fds)[1], color = "blue") + 
+  geom_vline(xintercept = as.vector(ci.python_fds)[2], color = "blue")
 
 plot_python_dds <- mean.python_dds$replicates %>%
   as.data.frame() %>%
   ggplot(aes(x = `mean(usuarios)`)) +
   geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_python_dds$usuarios), color = 'yellow')
+  geom_vline(xintercept = mean(dados_python_dds$usuarios), color = 'yellow')+
+  geom_vline(xintercept = as.vector(ci.python_dds)[1], color = "blue") + 
+  geom_vline(xintercept = as.vector(ci.python_dds)[2], color = "blue")
 
 multiplot(plot_python_fds, plot_python_dds, cols = 2)
 ```
@@ -198,28 +179,30 @@ multiplot(plot_python_fds, plot_python_dds, cols = 2)
 mean.c_fds = bootstrap(dados_c_fds, mean(usuarios), R = 4000)
 mean.c_dds = bootstrap(dados_c_dds, mean(usuarios), R = 4000)
 
+ci.c_fds = mean.c_fds %>% CI.bca(probs = c(.025, .975))
+ci.c_dds = mean.c_dds %>% CI.bca(probs = c(.025, .975))
+
 plot_c_fds <- mean.c_fds$replicates %>%
   as.data.frame() %>%
   ggplot(aes(x = `mean(usuarios)`)) +
   geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_c_fds$usuarios), color = 'green')
+  geom_vline(xintercept = mean(dados_c_fds$usuarios), color = 'green') +
+  geom_vline(xintercept = as.vector(ci.c_fds)[1], color = "blue") + 
+  geom_vline(xintercept = as.vector(ci.c_fds)[2], color = "blue")
 
 plot_c_dds <- mean.c_dds$replicates %>%
   as.data.frame() %>%
   ggplot(aes(x = `mean(usuarios)`)) +
   geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_c_dds$usuarios), color = 'yellow')
+  geom_vline(xintercept = mean(dados_c_dds$usuarios), color = 'yellow') +
+  geom_vline(xintercept = as.vector(ci.c_dds)[1], color = "blue") + 
+  geom_vline(xintercept = as.vector(ci.c_dds)[2], color = "blue")
 
 multiplot(plot_c_fds, plot_c_dds, cols = 2)
 ```
 
 
 ```{r}
-ci.python_fds = mean.python_fds %>% CI.bca(probs = c(.025, .975))
-ci.python_dds = mean.python_dds %>% CI.bca(probs = c(.025, .975))
-ci.c_fds = mean.c_fds %>% CI.bca(probs = c(.025, .975))
-ci.c_dds = mean.c_dds %>% CI.bca(probs = c(.025, .975))
-
 df = data.frame(rbind(ci.python_fds, ci.python_dds, ci.c_fds, ci.c_dds), row.names = c("mean_python_fds", "mean_python_dds", "mean_c_fds", "mean_c_dds"))
 df$medida = row.names(df)
 
@@ -228,4 +211,42 @@ df %>%
   geom_errorbar(width = .2)
 ```
 
+## 3.2 Comparação da popularidade durante a semana entre as duas linguagens
+
+
+
+```{r, fig.width=12, fig.height=4}
+mean.python <- bootstrap(dados_python, mean(usuarios), R = 4000)
+mean.c <- bootstrap(dados_c, mean(usuarios), R = 4000)
+
+ci.python <- CI.bca(mean.python, probs = c(0.025, 0.975))
+ci.c <- CI.bca(mean.c, probs = c(0.025, 0.975))
+
+plot_python <- mean.python$replicates %>%
+  as.data.frame() %>%
+  ggplot(aes(x = `mean(usuarios)`)) +
+  geom_histogram(binwidth = 1) +
+  geom_vline(xintercept = mean(dados_python$usuarios), color = "green") +
+  geom_vline(xintercept = as.vector(ci.python)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue")
+
+plot_c <- mean.c$replicates %>%
+  as.data.frame() %>%
+  ggplot(aes(x = `mean(usuarios)`)) +
+  geom_histogram(binwidth = 1) +
+  geom_vline(xintercept = mean(dados_c$usuarios), color = "yellow") +
+  geom_vline(xintercept = as.vector(ci.c)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.c)[2], color = "blue")
+
+multiplot(plot_python, plot_c, cols = 2)
+```
+
+```{r}
+df = data.frame(rbind(ci.python, ci.c), row.names = c("mean_python", "mean_c"))
+df$medida = row.names(df)
+
+df %>%
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
+  geom_errorbar(width = .2)
+```
 
