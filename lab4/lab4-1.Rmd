@@ -2,7 +2,9 @@
 title: "Lab 4 - Checkpoint 1"
 author: "Arnaldo Gualberto"
 date: "20/05/2017"
-output: html_document
+output: 
+  html_document:
+    smart: no
 ---
 
 ```{r setup, include=FALSE}
@@ -42,17 +44,35 @@ summary(dados_python)
 ```
 
 ```{r}
-dados_ttf <- dados_clean %>%
-  filter(extensao == "ttf")
+dados_c <- dados_clean %>%
+  filter(extensao == "c")
 
-summary(dados_ttf)
+summary(dados_c)
 ```
 
-```{r, fig.width=12}
-dados_py_ttf <- dados_clean %>%
-  filter(extensao == "py" | extensao == "ttf")
+```{r}
+dados_python %>%
+  ggplot(aes(x=usuarios)) +
+  geom_density() +
+  geom_vline(xintercept = mean(dados_python$usuarios))
+```
 
-dados_py_ttf %>%
+Em geral, aproximadamente 2500 ou 4700 usuários contribuem com códigos python diariamente.
+
+```{r}
+dados_c %>%
+  ggplot(aes(x=usuarios)) +
+  geom_density() +
+  geom_vline(xintercept = mean(dados_c$usuarios))
+```
+
+Já em arquivos tff, aproximadamente 530 usuários.
+
+```{r, fig.width=12}
+dados_py_c <- dados_clean %>%
+  filter(extensao == "py" | extensao == "c")
+
+dados_py_c %>%
   group_by(extensao, ano, mes) %>%
   summarise(total = sum(usuarios)) %>%
   ggplot(aes(x = paste(ano, sprintf("%02d", mes)), y = total, fill = extensao)) +
@@ -68,12 +88,64 @@ plot_python <- dados_python %>%
   ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
   geom_bar(stat = "identity")
 
-plot_ttf <- dados_ttf %>%
+plot_c <- dados_c %>%
   group_by(dia_da_semana) %>%
   summarise(total_usuarios = sum(usuarios)) %>%
   ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
   geom_bar(stat = "identity")
 
-multiplot(plot_python, plot_ttf, cols = 2)
+multiplot(plot_python, plot_c, cols = 2)
 ```
+
+```{r}
+plot_python <- dados_python %>%
+  ggplot(aes(x = dia_da_semana, y = usuarios)) +
+  geom_point(alpha = 0.2)
+
+plot_c <- dados_c %>%
+  ggplot(aes(x = dia_da_semana, y = usuarios)) +
+  geom_point(alpha = 0.2)
+
+multiplot(plot_python, plot_c, cols = 2)
+```
+
+```{r}
+dados_py_c %>%
+  ggplot(aes(x = dia_da_semana, y = usuarios, color = extensao)) +
+  geom_point(alpha = 0.3)
+```
+
+```{r}
+dados_python %>%
+  ggplot(aes(x = mes, y = dia_da_semana)) +
+  geom_tile(aes(fill = usuarios)) 
+```
+
+```{r}
+dados_python_fds <- dados_python %>% filter(dia_da_semana == "Sat" | dia_da_semana == "Sun")
+dados_python_dds <- dados_python %>% filter(dia_da_semana != "Sat" & dia_da_semana != "Sun")
+dados_c_fds <- dados_c %>% filter(dia_da_semana == "Sat" | dia_da_semana == "Sun")
+dados_c_dds <- dados_c %>% filter(dia_da_semana != "Sat" & dia_da_semana != "Sun")
+
+plot_python_fds <- dados_python_fds %>%
+  ggplot(aes(x = usuarios)) +
+  geom_histogram(bins=30)
+
+plot_python_dds <- dados_python_dds %>%
+  ggplot(aes(x = usuarios)) +
+  geom_histogram(bins=30)
+
+plot_c_fds <- dados_c_fds %>%
+  ggplot(aes(x = usuarios)) +
+  geom_histogram(bins=30)
+
+plot_c_dds <- dados_c_dds %>%
+  ggplot(aes(x = usuarios)) +
+  geom_histogram(bins=30)
+
+multiplot(plot_python_dds, plot_python_fds, plot_c_dds, plot_c_fds, cols = 2)
+```
+
+
+# 3. Inferência Estatística
 
