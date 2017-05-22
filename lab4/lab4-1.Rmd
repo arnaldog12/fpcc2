@@ -11,6 +11,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+O objetivo do checkpoint 1 do Lab 4 é analisar uma amostra de dados da atividade global do github. Esses dados contém a quantidade de usuários que editaram arquivos de diferentes extensões durante 2016 e 2017. Para este relatório, deve-se selecionar duas linguagens e responder as seguintes perguntas:
+
 * Para cada uma delas, há uma diferença significativa na sua popularidade durante a semana e durante o fim de semana? 
 * Existe uma diferença significativa na variação da popularidade das duas quando você compara o quanto a popularidade de cada uma varia durante os dias da semana?
 
@@ -25,11 +27,16 @@ source("multiplot.R")
 ```
 
 # 1. Carregamento e limpeza dos dados
+
+Primeiramente, vou carregar os dados e alterar o nome de suas colunas para facilitar o entendimento:
+
 ```{r}
 dados_github <- read_csv("data/github-data.csv")
 names(dados_github) <- c("extensao", "dia", "mes", "ano", "usuarios")
 glimpse(dados_github)
 ```
+
+Agora, vou criar duas novas colunas: uma com a data por completo e outra com o dia da semana correspondente:
 
 ```{r}
 dados_clean <- dados_github %>%
@@ -39,6 +46,8 @@ glimpse(dados_clean)
 ```
 
 # 2. Análise Descritiva
+
+Para este relatório, eu escolhi analisar os dados de _python_ e _c_, pois eu acredito que são linguagens de propósitos bem diferentes. Logo, vou filtrar os dados dessas linguagens e sumarizá-los:
 
 ```{r, fig.width=12, fig.height=6}
 dados_python <- dados_clean %>%
@@ -54,23 +63,45 @@ dados_c <- dados_clean %>%
 summary(dados_c)
 ```
 
-```{r}
-dados_python %>%
+Podemos ver que, ao todo, temos 496 dados sobre python e 493 dados sobre a linguagem c. Além disso, também é possível perceber que a faixa de usuários em python [1445-5542] é maior que em c [512-1848]. As duas apresentam dados no mesmo período (entre 01/01/2016 até 10/05/2017).
+
+Vamos ver como os dados sobre usuários se comportam num boxplot:
+
+```{r, fig.width=12, fig.height=4}
+plot_python <- dados_python %>%
+  ggplot(aes(x = 0, y = usuarios)) +
+  geom_boxplot() +
+  geom_point(position = position_jitter(width = 0.3))
+
+plot_c <- dados_c %>%
+  ggplot(aes(x = 0, y = usuarios)) +
+  geom_boxplot() +
+  geom_point(position = position_jitter(width = 0.3))
+
+multiplot(plot_python, plot_c, cols = 2)
+```
+
+Pelo boxplot, podemos perceber que as duas linguagens apresentam medianas bem diferentes. Além disso, a distribução dos usuários não apresenta nenhum _outlier_. Por conta disso, não deu-se necessário a aplicação de métodos para tratar de pontos desse tipo.
+
+Agora, quero analisar a densidade da distribuição dos usuários nas duas linguagens escolhidas:
+
+```{r, fig.width=12, fig.height=4}
+plot_python <- dados_python %>%
   ggplot(aes(x=usuarios)) +
   geom_density() +
   geom_vline(xintercept = mean(dados_python$usuarios))
-```
 
-Em geral, aproximadamente 2500 ou 4700 usuários contribuem com códigos python diariamente.
-
-```{r}
-dados_c %>%
+plot_c <- dados_c %>%
   ggplot(aes(x=usuarios)) +
   geom_density() +
   geom_vline(xintercept = mean(dados_c$usuarios))
+
+multiplot(plot_python, plot_c, cols = 2)
 ```
 
-Já em arquivos tff, aproximadamente 530 usuários.
+Podemos perceber que as duas linguagens apresentam distribuições bimodais, onde a média de usuários se apresentam mais próxima do pico mais alto, como era de se esperar. Vamos entender mais à frente o porquê da distribuição bimodal.
+
+A título de curiosidade, quero analisar a quantidade de usuários que editam arquivos mês-a-mês para cada linguagem:
 
 ```{r, fig.width=12}
 dados_py_c <- dados_clean %>%
@@ -84,6 +115,9 @@ dados_py_c %>%
 
 ```
 
+Pelo gráfico acima, podemos perceber que as duas linguagens apresentam novamente distribuições semelhantes. Em geral, há mais usuários editando arquivos no começo do ano (entre janeiro e março), seguida por uma queda de atividade até um novo aumento no final do ano (setembro a dezembro). O mês de Maio de 2017 apresenta pouca ativida pois os dados originais só coletaram dados até o dia 10 desse mês.
+
+Dando prosseguimento a atividade, quero analisar agora a distruibuição da quantidade de usuários por dia da semana:
 
 ```{r, fig.width=12}
 plot_python <- dados_python %>%
@@ -101,7 +135,9 @@ plot_c <- dados_c %>%
 multiplot(plot_python, plot_c, cols = 2)
 ```
 
+É possível perceber pelo gráfico que ambas as linguagens apresentam maior atividade durante os dias da semana. Além disso, em ambas, o pico de produtividade é na terça-feira.
 
+Que tal visualizar o gráfico da distribuição dos pontos para cada dia da semana?
 
 ```{r}
 dados_py_c %>%
@@ -109,11 +145,31 @@ dados_py_c %>%
   geom_point(alpha = 0.3)
 ```
 
-```{r}
-dados_python %>%
+Pelo gráfico acima, podemos perceber que a quantidade de usuários que alteram arquivos python é sempre maior que a quantidade de usuários que alteram arquivos c em todos os dias da semana. Infelizmente, não há nenhuma interseção dos pontos em nenhum dia da semana. Isso pode indicar um forte indício que há uma diferença significativa entre as duas linguagens.
+
+Também quero visualizar se a atividade durante os dias da semana é diferente dependendo do mês do ano:
+
+```{r, fig.width=12, fig.height=4}
+plot_python <- dados_python %>%
   ggplot(aes(x = mes, y = dia_da_semana)) +
-  geom_tile(aes(fill = usuarios)) 
+  geom_tile(aes(fill = usuarios)) +
+  scale_fill_gradient(low = "#56B1F7", high = "#132B43")
+
+plot_c <- dados_c %>%
+  ggplot(aes(x = mes, y = dia_da_semana)) +
+  geom_tile(aes(fill = usuarios)) +
+  scale_fill_gradient(low = "#56B1F7", high = "#132B43")
+
+multiplot(plot_python, plot_c, cols = 2)
 ```
+
+Pelo gráfico acima, podemos ver que as duas linguagens apresentam comportamentos parecidos. Além disso, há alguns padrões interessantes:
+
+* Em janeiro, os usuários programam menos nas sexta-feiras;
+* Os meses de abril e maio também apresentam poucas edições de arquivo nas duas linguagens;
+* Os meses de fevereiro e junho são os meses de maior atividade durante a semana;
+
+Por fim, quero analisar a distribuição do número de usuários para os dias da semana e do fim de semana. Esses gráficos são importantes para a resposta das questões.
 
 ```{r, fig.width=12}
 dados_python_fds <- dados_python %>% filter(dia_da_semana == "Sat" | dia_da_semana == "Sun")
@@ -123,31 +179,46 @@ dados_c_dds <- dados_c %>% filter(dia_da_semana != "Sat" & dia_da_semana != "Sun
 
 plot_python_fds <- dados_python_fds %>%
   ggplot(aes(x = usuarios)) +
-  geom_histogram(bins=30)
+  geom_histogram(bins=30) +
+  geom_vline(xintercept = mean(dados_python_fds$usuarios), color = "green") +
+  geom_vline(xintercept = median(dados_python_fds$usuarios), color = "yellow")
 
 plot_python_dds <- dados_python_dds %>%
   ggplot(aes(x = usuarios)) +
-  geom_histogram(bins=30)
+  geom_histogram(bins=30) +
+  geom_vline(xintercept = mean(dados_python_dds$usuarios), color = "green") +
+  geom_vline(xintercept = median(dados_python_dds$usuarios), color = "yellow")
 
 plot_c_fds <- dados_c_fds %>%
   ggplot(aes(x = usuarios)) +
-  geom_histogram(bins=30)
+  geom_histogram(bins=30) +
+  geom_vline(xintercept = mean(dados_c_fds$usuarios), color = "green") +
+  geom_vline(xintercept = median(dados_c_fds$usuarios), color = "yellow")
 
 plot_c_dds <- dados_c_dds %>%
   ggplot(aes(x = usuarios)) +
-  geom_histogram(bins=30)
+  geom_histogram(bins=30) +
+  geom_vline(xintercept = mean(dados_c_dds$usuarios), color = "green") +
+  geom_vline(xintercept = median(dados_c_dds$usuarios), color = "yellow")
 
 multiplot(plot_python_dds, plot_python_fds, plot_c_dds, plot_c_fds, cols = 2)
 ```
 
+Os gráficos acima nos mostram que tanto a média quanto a mediana são próximas em todos os gráficos. Logo, quando formos estimar a estatística da população na próxima seção, podemos usar qualquer uma delas, ao meu ver. Também é possível ver diferentes distribuições em cada gráfico, mas nenhuma delas aparenta ser muito próxima da normal.
+
+Na próxima seção, vamos mostrar que, independemente da distribuição original, a distribuição amostral se aproxima da distribuição normal quando utilizamos um processo de amostragem (no caso, será o _boostrap_).
 
 # 3. Inferência Estatística
 
 Como os dados que temos representam apenas uma amostra da população, teremos de efetuar o _bootstrap_ para estimar estatísticas da população, calcular os intervalos de confiança e, consequentemente, compará-las. Neste trabalho vamos estimar a média da população.
 
+Em ambas as respostas das questões, vamos efetuar 4000 repetições de _bootstrap_ e calcular o intervalo de confiança para 95%.
+
 ## 3.1 Comparação da popularidade entre fim de semana e dias de semana para cada linguagem
 
+A primeira inferência que vamos aplicar será para comparar a popularidade de cada linguagem durante a semana e durante o fim de semana. Nesse caso, queremos saber se, para cada linguagem, há uma diferença significativa entre a popularidade durante a semana e durante o fim de semana. Em outras palavras: __Será que a linguagem em questão é mais popular durante a semana do que durante o fim de semana?__
 
+Primeiramente, eu vou analisar a popularidade da linguagem python:
 
 ```{r, fig.width=12, fig.height=4}
 mean.python_fds = bootstrap(dados_python_fds, mean(usuarios), R = 4000)
@@ -173,7 +244,14 @@ plot_python_dds <- mean.python_dds$replicates %>%
   geom_vline(xintercept = as.vector(ci.python_dds)[2], color = "blue")
 
 multiplot(plot_python_fds, plot_python_dds, cols = 2)
+
+ci.python_fds
+ci.python_dds
 ```
+
+Pelos gráficos acima, conseguimos afirmar com 95% de confiança que __a média de usuários que alteram arquivos python durante o final de semana está entre [2467.722, 2576.545]__. Por outro lado, __a média de usuários durante a semana é [4588.282, 4709.251], também com 95% de confiança__. Ambos os intervalos de confiança estão destacados em azul no gráfico. As linhas amarela e verde representam, respectivamente, as médias de usuários que editam arquivos python durante o fim de semana e durante a semana, ou seja, as amostras que foram efetuadas o _bootstrap_. __Vale ressaltar que os intervalos de confiança mostrados estimam a média da população__.
+
+Vamos observar o mesmo gráfico para a popularidade da linguagem c:
 
 ```{r, fig.width=12, fig.height=4}
 mean.c_fds = bootstrap(dados_c_fds, mean(usuarios), R = 4000)
@@ -199,8 +277,14 @@ plot_c_dds <- mean.c_dds$replicates %>%
   geom_vline(xintercept = as.vector(ci.c_dds)[2], color = "blue")
 
 multiplot(plot_c_fds, plot_c_dds, cols = 2)
+
+ci.c_fds
+ci.c_dds
 ```
 
+No caso da linguagem c, temos que __a média da população deve estar entre [862.9063, 906.2229] para os fins de semana e entre [1397.398, 1445.802] para os dias da semana, com 95% de confiança__. As cores das linhas contém o mesmo significado que no gráfico anterior, exceto que para as amostras da linguagem c.
+
+Para terminar de responder a primeira questão, vamos plotar os intervalos de confiança com a ajuda de barras de erro:
 
 ```{r}
 df = data.frame(rbind(ci.python_fds, ci.python_dds, ci.c_fds, ci.c_dds), row.names = c("mean_python_fds", "mean_python_dds", "mean_c_fds", "mean_c_dds"))
@@ -211,9 +295,11 @@ df %>%
   geom_errorbar(width = .2)
 ```
 
+Como não houve nenhuma interseção entre as barras de erro para cada linguagem, podemos concluir que __há uma diferença significativa entre as populações das duas linguagens para fins de semana e durante a semana__.
+
 ## 3.2 Comparação da popularidade durante a semana entre as duas linguagens
 
-
+Nessa seção, queremos saber agora se há uma diferença significativa de popularidade entre as duas linguagens (_pelo menos foi isso que entendi da pergunta_). Para isso, vamos utilizar a mesma abordagem que na seção anterior, porém agora nossas amostra são representadas pelos dados das linguagens python e c (sem separar por fim de semana e dias de semana).
 
 ```{r, fig.width=12, fig.height=4}
 mean.python <- bootstrap(dados_python, mean(usuarios), R = 4000)
@@ -239,7 +325,14 @@ plot_c <- mean.c$replicates %>%
   geom_vline(xintercept = as.vector(ci.c)[2], color = "blue")
 
 multiplot(plot_python, plot_c, cols = 2)
+
+ci.python
+ci.c
 ```
+
+Com 95% de confiança, podemos estimar que __a média da população para linguagem python deve estar entre [3944.799, 4139.601]. Enquanto que para a linguagem c, a média da população deve estar entre [1241.243, 1296.882]__. Novamente, os intervalos de confiança apresentam pouca variação. Os intervalos de confiança são representados em azul no gráfico. As linhas verde e amarela representam as médias das amostras da linguagem python e c, respectivamente.
+
+Para finalizar, vamos plotar os intervalos de confiança para cada linguagem:
 
 ```{r}
 df = data.frame(rbind(ci.python, ci.c), row.names = c("mean_python", "mean_c"))
@@ -250,3 +343,10 @@ df %>%
   geom_errorbar(width = .2)
 ```
 
+Pelo gráfico, podemos concluir que __há uma diferença significativa entre as popularidades da linguagem c e python, uma vez que os intervalor de confiança não se cruzam__.
+
+# 4. Conclusões
+
+* O _bootstrap_ se mostrou uma técnica eficiente para estimar os parâmetros da população. Quatro mil repetições foram efetuadas sobre as amostras ($n \approx 500$);
+* Com 95% de confiança, há uma diferença significativa entre as popularidades das linguagens python e c durante a semana e durante os finais de semana;
+* Há uma diferença significativa entre as popularidades das linguagens python e c para um nível de confiança de 95%;
