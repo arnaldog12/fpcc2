@@ -20,17 +20,21 @@ O objetivo do checkpoint 1 do Lab 4 é analisar uma amostra de dados da atividad
 ```{r}
 library(dplyr, warn.conflicts = FALSE)
 library(ggplot2)
+library(knitr)
 library(lubridate, warn.conflicts = FALSE)
 library(readr)
 library(resample)
 source("multiplot.R")
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
 ```
 
 # 1. Carregamento e limpeza dos dados
 
 Primeiramente, vou carregar os dados e alterar o nome de suas colunas para facilitar o entendimento:
 
-```{r}
+```{r, message=FALSE}
 dados_github <- read_csv("data/github-data.csv")
 names(dados_github) <- c("extensao", "dia", "mes", "ano", "usuarios")
 glimpse(dados_github)
@@ -53,14 +57,14 @@ Para este relatório, eu escolhi analisar os dados de _python_ e _c_, pois eu ac
 dados_python <- dados_clean %>%
   filter(extensao == "py")
 
-summary(dados_python)
+summary(dados_python) %>% kable()
 ```
 
 ```{r}
 dados_c <- dados_clean %>%
   filter(extensao == "c")
 
-summary(dados_c)
+summary(dados_c) %>% kable()
 ```
 
 Podemos ver que, ao todo, temos 496 dados sobre python e 493 dados sobre a linguagem c. Além disso, também é possível perceber que a faixa de usuários em python [1445-5542] é maior que em c [512-1848]. As duas apresentam dados no mesmo período (entre 01/01/2016 até 10/05/2017).
@@ -71,12 +75,16 @@ Vamos ver como os dados sobre usuários se comportam num boxplot:
 plot_python <- dados_python %>%
   ggplot(aes(x = 0, y = usuarios)) +
   geom_boxplot() +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(position = position_jitter(width = 0.3), color="blue") +
+  ggtitle("Usuários da linguagem python") +
+  labs(x = "", y = "Usuários")
 
 plot_c <- dados_c %>%
   ggplot(aes(x = 0, y = usuarios)) +
   geom_boxplot() +
-  geom_point(position = position_jitter(width = 0.3))
+  geom_point(position = position_jitter(width = 0.3), color="red") +
+  ggtitle("Usuários da linguagem c") +
+  labs(x = "", y = "Usuários")
 
 multiplot(plot_python, plot_c, cols = 2)
 ```
@@ -89,21 +97,25 @@ Agora, quero analisar a densidade da distribuição dos usuários nas duas lingu
 plot_python <- dados_python %>%
   ggplot(aes(x=usuarios)) +
   geom_density() +
-  geom_vline(xintercept = mean(dados_python$usuarios))
+  geom_vline(xintercept = mean(dados_python$usuarios), color = "blue") +
+  ggtitle("Densidade de usuários (python)") +
+  labs(x = "Usuários", y = "Densidade")
 
 plot_c <- dados_c %>%
   ggplot(aes(x=usuarios)) +
   geom_density() +
-  geom_vline(xintercept = mean(dados_c$usuarios))
+  geom_vline(xintercept = mean(dados_c$usuarios), color="red") +
+  ggtitle("Densidade de usuários (c)") +
+  labs(x = "Usuários", y = "Densidade")
 
 multiplot(plot_python, plot_c, cols = 2)
 ```
 
-Podemos perceber que as duas linguagens apresentam distribuições bimodais, onde a média de usuários se apresentam mais próxima do pico mais alto, como era de se esperar. Vamos entender mais à frente o porquê da distribuição bimodal.
+Podemos perceber que as duas linguagens apresentam distribuições bimodais, onde a média de usuários (linhas verticais) se apresentam mais próxima do pico mais alto, como era de se esperar. Vamos entender mais à frente o porquê da distribuição bimodal.
 
 A título de curiosidade, quero analisar a quantidade de usuários que editam arquivos mês-a-mês para cada linguagem:
 
-```{r, fig.width=12}
+```{r, fig.width=12, fig.align="center"}
 dados_py_c <- dados_clean %>%
   filter(extensao == "py" | extensao == "c")
 
@@ -111,7 +123,9 @@ dados_py_c %>%
   group_by(extensao, ano, mes) %>%
   summarise(total = sum(usuarios)) %>%
   ggplot(aes(x = paste(ano, sprintf("%02d", mes)), y = total, fill = extensao)) +
-  geom_bar(stat = "identity", position = "dodge")
+  geom_bar(stat = "identity", position = "dodge") +
+  ggtitle("Quantidade de usuários por linguagem para cada mês") +
+  labs(x = "Ano.Mês", y = "Total de usuários")
 
 ```
 
@@ -119,18 +133,22 @@ Pelo gráfico acima, podemos perceber que as duas linguagens apresentam novament
 
 Dando prosseguimento a atividade, quero analisar agora a distruibuição da quantidade de usuários por dia da semana:
 
-```{r, fig.width=12}
+```{r, fig.width=12, fig.height=4}
 plot_python <- dados_python %>%
   group_by(dia_da_semana) %>%
   summarise(total_usuarios = sum(usuarios)) %>%
   ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
-  geom_bar(stat = "identity")
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Quantidade de usuários por dia da semana (python)") +
+  labs(x = "Dia da semana", y = "Total de usuários")
 
 plot_c <- dados_c %>%
   group_by(dia_da_semana) %>%
   summarise(total_usuarios = sum(usuarios)) %>%
   ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
-  geom_bar(stat = "identity")
+  geom_bar(stat = "identity", fill = "red") +
+  ggtitle("Quantidade de usuários por dia da semana (c)") +
+  labs(x = "Dia da semana", y = "Total de usuários")
 
 multiplot(plot_python, plot_c, cols = 2)
 ```
@@ -139,10 +157,12 @@ multiplot(plot_python, plot_c, cols = 2)
 
 Que tal visualizar o gráfico da distribuição dos pontos para cada dia da semana?
 
-```{r}
+```{r, fig.align="center"}
 dados_py_c %>%
   ggplot(aes(x = dia_da_semana, y = usuarios, color = extensao)) +
-  geom_point(alpha = 0.3)
+  geom_point(alpha = 0.3) +
+  ggtitle("Usuários de cada linguagem por dia da semana") +
+  labs(x = "Dia da semana", y = "Total de usuários")
 ```
 
 Pelo gráfico acima, podemos perceber que a quantidade de usuários que alteram arquivos python é sempre maior que a quantidade de usuários que alteram arquivos c em todos os dias da semana. Infelizmente, não há nenhuma interseção dos pontos em nenhum dia da semana. Isso pode indicar um forte indício que há uma diferença significativa entre as duas linguagens.
@@ -153,12 +173,18 @@ Também quero visualizar se a atividade durante os dias da semana é diferente d
 plot_python <- dados_python %>%
   ggplot(aes(x = mes, y = dia_da_semana)) +
   geom_tile(aes(fill = usuarios)) +
-  scale_fill_gradient(low = "#56B1F7", high = "#132B43")
+  ggtitle("Usuários por dia da semana para cada mês (python)") +
+  labs(x = "Mês", y = "Dia da Semana") +
+  scale_fill_gradient(low = "#56B1F7", high = "#132B43") +
+  scale_x_continuous(breaks = c(1:12), expand = c(0,0))
 
 plot_c <- dados_c %>%
   ggplot(aes(x = mes, y = dia_da_semana)) +
   geom_tile(aes(fill = usuarios)) +
-  scale_fill_gradient(low = "#56B1F7", high = "#132B43")
+  ggtitle("Usuários por dia da semana para cada mês (c)") +
+  labs(x = "Mês", y = "Dia da Semana") +
+  scale_fill_gradient(low = "#56B1F7", high = "#132B43") +
+  scale_x_continuous(breaks = c(1:12), expand = c(0,0))
 
 multiplot(plot_python, plot_c, cols = 2)
 ```
@@ -181,25 +207,33 @@ plot_python_fds <- dados_python_fds %>%
   ggplot(aes(x = usuarios)) +
   geom_histogram(bins=30) +
   geom_vline(xintercept = mean(dados_python_fds$usuarios), color = "green") +
-  geom_vline(xintercept = median(dados_python_fds$usuarios), color = "yellow")
+  geom_vline(xintercept = median(dados_python_fds$usuarios), color = "yellow") +
+  ggtitle("Histograma de usuários durante fim de semana (python)") +
+  labs(x = "Número de usuários", y = "Quantidade")
 
 plot_python_dds <- dados_python_dds %>%
   ggplot(aes(x = usuarios)) +
   geom_histogram(bins=30) +
   geom_vline(xintercept = mean(dados_python_dds$usuarios), color = "green") +
-  geom_vline(xintercept = median(dados_python_dds$usuarios), color = "yellow")
+  geom_vline(xintercept = median(dados_python_dds$usuarios), color = "yellow") +
+  ggtitle("Histograma de usuários durante a semana (python)") +
+  labs(x = "Número de usuários", y = "Quantidade")
 
 plot_c_fds <- dados_c_fds %>%
   ggplot(aes(x = usuarios)) +
   geom_histogram(bins=30) +
   geom_vline(xintercept = mean(dados_c_fds$usuarios), color = "green") +
-  geom_vline(xintercept = median(dados_c_fds$usuarios), color = "yellow")
+  geom_vline(xintercept = median(dados_c_fds$usuarios), color = "yellow") +
+  ggtitle("Histograma de usuários durante fim de semana (c)") +
+  labs(x = "Número de usuários", y = "Quantidade")
 
 plot_c_dds <- dados_c_dds %>%
   ggplot(aes(x = usuarios)) +
   geom_histogram(bins=30) +
   geom_vline(xintercept = mean(dados_c_dds$usuarios), color = "green") +
-  geom_vline(xintercept = median(dados_c_dds$usuarios), color = "yellow")
+  geom_vline(xintercept = median(dados_c_dds$usuarios), color = "yellow") +
+  ggtitle("Histograma de usuários durante a semana (c)") +
+  labs(x = "Número de usuários", y = "Quantidade")
 
 multiplot(plot_python_dds, plot_python_fds, plot_c_dds, plot_c_fds, cols = 2)
 ```
@@ -233,7 +267,9 @@ plot_python_fds <- mean.python_fds$replicates %>%
   geom_histogram(binwidth = 1) +
   geom_vline(xintercept = mean(dados_python_fds$usuarios), color = 'green') +
   geom_vline(xintercept = as.vector(ci.python_fds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.python_fds)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.python_fds)[2], color = "blue") +
+  ggtitle("Distribuição amostral da média de usuários durante fim de semana") +
+  labs(x = "Média de usuários", y = "Quantidade")
 
 plot_python_dds <- mean.python_dds$replicates %>%
   as.data.frame() %>%
@@ -241,7 +277,9 @@ plot_python_dds <- mean.python_dds$replicates %>%
   geom_histogram(binwidth = 1) +
   geom_vline(xintercept = mean(dados_python_dds$usuarios), color = 'yellow')+
   geom_vline(xintercept = as.vector(ci.python_dds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.python_dds)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.python_dds)[2], color = "blue") +
+  ggtitle("Distribuição amostral da média de usuários durante a semana") +
+  labs(x = "Média de usuários", y = "Quantidade")
 
 multiplot(plot_python_fds, plot_python_dds, cols = 2)
 
@@ -266,7 +304,9 @@ plot_c_fds <- mean.c_fds$replicates %>%
   geom_histogram(binwidth = 1) +
   geom_vline(xintercept = mean(dados_c_fds$usuarios), color = 'green') +
   geom_vline(xintercept = as.vector(ci.c_fds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.c_fds)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.c_fds)[2], color = "blue") +
+  ggtitle("Distribuição amostral da média de usuários durante a semana") +
+  labs(x = "Média de usuários", y = "Quantidade")
 
 plot_c_dds <- mean.c_dds$replicates %>%
   as.data.frame() %>%
@@ -274,7 +314,9 @@ plot_c_dds <- mean.c_dds$replicates %>%
   geom_histogram(binwidth = 1) +
   geom_vline(xintercept = mean(dados_c_dds$usuarios), color = 'yellow') +
   geom_vline(xintercept = as.vector(ci.c_dds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.c_dds)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.c_dds)[2], color = "blue") +
+  ggtitle("Distribuição amostral da média de usuários durante a semana") +
+  labs(x = "Média de usuários", y = "Quantidade")
 
 multiplot(plot_c_fds, plot_c_dds, cols = 2)
 
@@ -286,13 +328,17 @@ No caso da linguagem c, temos que __a média da população deve estar entre [86
 
 Para terminar de responder a primeira questão, vamos plotar os intervalos de confiança com a ajuda de barras de erro:
 
-```{r}
+```{r,fig.align="center"}
 df = data.frame(rbind(ci.python_fds, ci.python_dds, ci.c_fds, ci.c_dds), row.names = c("mean_python_fds", "mean_python_dds", "mean_c_fds", "mean_c_dds"))
 df$medida = row.names(df)
 
 df %>%
   ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
-  geom_errorbar(width = .2)
+  geom_errorbar(width = .2) +
+  ggtitle("Intervalos de confiança para a média de usuários") +
+  labs(x = "Linguagem (amostra)", y = "Intervalo de confiança") +
+  scale_x_discrete(labels = c("mean_c_dds"="C (semana)", "mean_c_fds"="C (fim de semana)", "mean_python_dds"="Python (semana)", "mean_python_fds"="Python (fim de semana)"))
+
 ```
 
 Como não houve nenhuma interseção entre as barras de erro para cada linguagem, podemos concluir que __há uma diferença significativa entre as populações das duas linguagens para fins de semana e durante a semana__.
@@ -314,7 +360,10 @@ plot_python <- mean.python$replicates %>%
   geom_histogram(binwidth = 1) +
   geom_vline(xintercept = mean(dados_python$usuarios), color = "green") +
   geom_vline(xintercept = as.vector(ci.python)[1], color = "blue") +
-  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue") +
+  ggtitle("Distribuição amostral da média de usuários (python)") +
+  labs(x = "Média de usuários", y = "Quantidade")
+
 
 plot_c <- mean.c$replicates %>%
   as.data.frame() %>%
@@ -322,7 +371,10 @@ plot_c <- mean.c$replicates %>%
   geom_histogram(binwidth = 1) +
   geom_vline(xintercept = mean(dados_c$usuarios), color = "yellow") +
   geom_vline(xintercept = as.vector(ci.c)[1], color = "blue") +
-  geom_vline(xintercept = as.vector(ci.c)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.c)[2], color = "blue") +
+  ggtitle("Distribuição amostral da média de usuários (c)") +
+  labs(x = "Média de usuários", y = "Quantidade")
+
 
 multiplot(plot_python, plot_c, cols = 2)
 
@@ -334,13 +386,17 @@ Com 95% de confiança, podemos estimar que __a média da população para lingua
 
 Para finalizar, vamos plotar os intervalos de confiança para cada linguagem:
 
-```{r}
+```{r, fig.align="center"}
 df = data.frame(rbind(ci.python, ci.c), row.names = c("mean_python", "mean_c"))
 df$medida = row.names(df)
 
 df %>%
   ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
-  geom_errorbar(width = .2)
+  geom_errorbar(width = .2) +
+  ggtitle("Intervalo de Confiança para a média de usuários") +
+  labs(x = "Linguagem", y = "Quantidade") +
+  scale_x_discrete(labels = c("mean_c"="C", "mean_python"="Python"))
+
 ```
 
 Pelo gráfico, podemos concluir que __há uma diferença significativa entre as popularidades da linguagem c e python, uma vez que os intervalor de confiança não se cruzam__.
