@@ -111,7 +111,7 @@ plot_c <- dados_c %>%
 multiplot(plot_python, plot_c, cols = 2)
 ```
 
-Podemos perceber que as duas linguagens apresentam distribuições bimodais, onde a média de usuários (linhas verticais) se apresentam mais próxima do pico mais alto, como era de se esperar. Vamos entender mais à frente o porquê da distribuição bimodal.
+Podemos perceber que __as duas linguagens apresentam distribuições bimodais__, onde a média de usuários (linhas verticais) se apresentam mais próxima do pico mais alto, como era de se esperar. Vamos entender mais à frente o porquê da distribuição bimodal.
 
 A título de curiosidade, quero analisar a quantidade de usuários que editam arquivos mês-a-mês para cada linguagem:
 
@@ -129,7 +129,7 @@ dados_py_c %>%
 
 ```
 
-Pelo gráfico acima, podemos perceber que as duas linguagens apresentam novamente distribuições semelhantes. Em geral, há mais usuários editando arquivos no começo do ano (entre janeiro e março), seguida por uma queda de atividade até um novo aumento no final do ano (setembro a dezembro). O mês de Maio de 2017 apresenta pouca ativida pois os dados originais só coletaram dados até o dia 10 desse mês.
+Pelo gráfico acima, podemos perceber que as duas linguagens apresentam novamente distribuições semelhantes. Em geral, __há mais usuários editando arquivos no começo do ano (entre janeiro e março), seguida por uma queda de atividade até um novo aumento no final do ano (setembro a dezembro)__. O mês de Maio de 2017 apresenta pouca atividade pois os dados originais só coletaram dados até o dia 10 desse mês.
 
 Dando prosseguimento a atividade, quero analisar agora a distruibuição da quantidade de usuários por dia da semana:
 
@@ -153,7 +153,7 @@ plot_c <- dados_c %>%
 multiplot(plot_python, plot_c, cols = 2)
 ```
 
-É possível perceber pelo gráfico que ambas as linguagens apresentam maior atividade durante os dias da semana. Além disso, em ambas, o pico de produtividade é na terça-feira.
+É possível perceber pelo gráfico que __ambas as linguagens apresentam maior atividade durante os dias da semana. Além disso, em ambas, o pico de produtividade é na terça-feira__. Esse gráfico também mostra o porque da distribuição bimodal vista anteriormente: há um pico para os dias da semana e outro para os dias do fim de semana.
 
 Que tal visualizar o gráfico da distribuição dos pontos para cada dia da semana?
 
@@ -165,7 +165,7 @@ dados_py_c %>%
   labs(x = "Dia da semana", y = "Total de usuários")
 ```
 
-Pelo gráfico acima, podemos perceber que a quantidade de usuários que alteram arquivos python é sempre maior que a quantidade de usuários que alteram arquivos c em todos os dias da semana. Infelizmente, não há nenhuma interseção dos pontos em nenhum dia da semana. Isso pode indicar um forte indício que há uma diferença significativa entre as duas linguagens.
+Pelo gráfico acima, podemos perceber que __a quantidade de usuários que alteram arquivos python é sempre maior que a quantidade de usuários que alteram arquivos c em todos os dias da semana__. Infelizmente, não há nenhuma interseção dos pontos em nenhum dia da semana. Isso pode indicar que talvez exista uma diferença significativa entre as duas linguagens.
 
 Também quero visualizar se a atividade durante os dias da semana é diferente dependendo do mês do ano:
 
@@ -191,7 +191,7 @@ multiplot(plot_python, plot_c, cols = 2)
 
 Pelo gráfico acima, podemos ver que as duas linguagens apresentam comportamentos parecidos. Além disso, há alguns padrões interessantes:
 
-* Em janeiro, os usuários programam menos nas sexta-feiras;
+* Em janeiro, há menos alterações de arquivos python e c nas sexta-feiras;
 * Os meses de abril e maio também apresentam poucas edições de arquivo nas duas linguagens;
 * Os meses de fevereiro e junho são os meses de maior atividade durante a semana;
 
@@ -238,15 +238,15 @@ plot_c_dds <- dados_c_dds %>%
 multiplot(plot_python_dds, plot_python_fds, plot_c_dds, plot_c_fds, cols = 2)
 ```
 
-Os gráficos acima nos mostram que tanto a média quanto a mediana são próximas em todos os gráficos. Logo, quando formos estimar a estatística da população na próxima seção, podemos usar qualquer uma delas, ao meu ver. Também é possível ver diferentes distribuições em cada gráfico, mas nenhuma delas aparenta ser muito próxima da normal.
+Os gráficos acima nos mostram que __tanto a média quanto a mediana são próximas em todos os gráficos__. Logo, quando formos estimar a estatística da população na próxima seção, podemos usar qualquer uma delas, ao meu ver. Também é possível ver diferentes distribuições em cada gráfico, mas nenhuma delas aparenta ser muito próxima da normal.
 
-Na próxima seção, vamos mostrar que, independemente da distribuição original, a distribuição amostral se aproxima da distribuição normal quando utilizamos um processo de amostragem (no caso, será o _boostrap_).
+Na próxima seção, vamos mostrar que, __independemente da distribuição original, a distribuição amostral se aproxima da distribuição normal quando utilizamos um processo de amostragem (no caso, será o _boostrap_)__.
 
 # 3. Inferência Estatística
 
 Como os dados que temos representam apenas uma amostra da população, teremos de efetuar o _bootstrap_ para estimar estatísticas da população, calcular os intervalos de confiança e, consequentemente, compará-las. Neste trabalho vamos estimar a média da população.
 
-Em ambas as respostas das questões, vamos efetuar 4000 repetições de _bootstrap_ e calcular o intervalo de confiança para 95%.
+Em ambas as respostas das questões, __vamos efetuar 4000 repetições de _bootstrap_ e calcular o intervalo de confiança para 95%__.
 
 ## 3.1 Comparação da popularidade entre fim de semana e dias de semana para cada linguagem
 
@@ -287,7 +287,7 @@ ci.python_fds
 ci.python_dds
 ```
 
-Pelos gráficos acima, conseguimos afirmar com 95% de confiança que __a média de usuários que alteram arquivos python durante o final de semana está entre [2467.722, 2576.545]__. Por outro lado, __a média de usuários durante a semana é [4588.282, 4709.251], também com 95% de confiança__. Ambos os intervalos de confiança estão destacados em azul no gráfico. As linhas amarela e verde representam, respectivamente, as médias de usuários que editam arquivos python durante o fim de semana e durante a semana, ou seja, as amostras que foram efetuadas o _bootstrap_. __Vale ressaltar que os intervalos de confiança mostrados estimam a média da população__.
+Pelos gráficos acima, conseguimos afirmar com 95% de confiança que __a média de usuários que alteram arquivos python durante o final de semana está entre [2467.722, 2576.545]__. Por outro lado, __a média de usuários durante a semana está entre [4588.282, 4709.251], também com 95% de confiança__. Ambos os intervalos de confiança estão destacados em azul no gráfico. As linhas amarela e verde representam, respectivamente, as médias de usuários que editam arquivos python durante o fim de semana e durante a semana (média dos dados originais onde foram efetuados os _bootstrap_). __Vale ressaltar que os intervalos de confiança mostrados estimam a média da população__.
 
 Vamos observar o mesmo gráfico para a popularidade da linguagem c:
 
@@ -364,7 +364,6 @@ plot_python <- mean.python$replicates %>%
   ggtitle("Distribuição amostral da média de usuários (python)") +
   labs(x = "Média de usuários", y = "Quantidade")
 
-
 plot_c <- mean.c$replicates %>%
   as.data.frame() %>%
   ggplot(aes(x = `mean(usuarios)`)) +
@@ -382,7 +381,7 @@ ci.python
 ci.c
 ```
 
-Com 95% de confiança, podemos estimar que __a média da população para linguagem python deve estar entre [3944.799, 4139.601]. Enquanto que para a linguagem c, a média da população deve estar entre [1241.243, 1296.882]__. Novamente, os intervalos de confiança apresentam pouca variação. Os intervalos de confiança são representados em azul no gráfico. As linhas verde e amarela representam as médias das amostras da linguagem python e c, respectivamente.
+Com 95% de confiança, podemos estimar que __a média da população para linguagem python deve estar entre [3944.799, 4139.601]. Enquanto que para a linguagem c, a média da população deve estar entre [1241.243, 1296.882]__. Novamente, os intervalos de confiança apresentam pouca variação. Os intervalos de confiança são representados em azul no gráfico. As linhas verde e amarela representam as médias dos dados da linguagem python e c, respectivamente.
 
 Para finalizar, vamos plotar os intervalos de confiança para cada linguagem:
 
