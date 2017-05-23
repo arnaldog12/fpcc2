@@ -2,7 +2,7 @@
 title: "Lab 4 - Checkpoint 1"
 author: "Arnaldo Gualberto"
 date: "20/05/2017"
-output: 
+output:
   html_document:
     smart: no
 ---
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 O objetivo do checkpoint 1 do Lab 4 é analisar uma amostra de dados da atividade global do github. Esses dados contém a quantidade de usuários que editaram arquivos de diferentes extensões durante 2016 e 2017. Para este relatório, deve-se selecionar duas linguagens e responder as seguintes perguntas:
 
-* Para cada uma delas, há uma diferença significativa na sua popularidade durante a semana e durante o fim de semana? 
+* Para cada uma delas, há uma diferença significativa na sua popularidade durante a semana e durante o fim de semana?
 * Existe uma diferença significativa na variação da popularidade das duas quando você compara o quanto a popularidade de cada uma varia durante os dias da semana?
 
 # 0. Includes e Settings
@@ -250,11 +250,11 @@ Em ambas as respostas das questões, __vamos efetuar 4000 repetições de _boots
 
 ## 3.1 Comparação da popularidade entre fim de semana e dias de semana para cada linguagem
 
-A primeira inferência que vamos aplicar será para comparar a popularidade de cada linguagem durante a semana e durante o fim de semana. Nesse caso, queremos saber se, para cada linguagem, há uma diferença significativa entre a popularidade durante a semana e durante o fim de semana. Em outras palavras: __Será que a linguagem em questão é mais popular durante a semana do que durante o fim de semana?__
+A primeira inferência que vamos aplicar será para comparar a popularidade de cada linguagem durante a semana e durante o fim de semana. Nesse caso, queremos saber se, para cada linguagem, há uma diferença significativa entre a popularidade durante a semana e durante o fim de semana e quanto é essa diferença. Em outras palavras: __Será que a linguagem em questão é mais popular durante a semana do que durante o fim de semana? Se sim, quanto é essa diferença?__
 
 ```{r, fig.width=12, fig.height=4}
-mean.python <- bootstrap2(dados_python_dds, data2 = dados_python_fds, mean(usuarios), R = 4000)
-mean.c <- bootstrap2(dados_c_dds, data2 = dados_c_fds, mean(usuarios), R = 4000)
+mean.python <- bootstrap2(dados_python_dds, data2 = dados_python_fds, mean(usuarios), R = 4000, seed = 1234)
+mean.c <- bootstrap2(dados_c_dds, data2 = dados_c_fds, mean(usuarios), R = 4000, seed = 1234)
 
 ci.python <- mean.python %>% CI.percentile(probs = c(.025, .975))
 ci.c <- mean.c %>% CI.percentile(probs = c(.025, .975))
@@ -283,6 +283,14 @@ ci.python
 ci.c
 ```
 
+Pelo gráfico acima, podemos afirmar com 95% de confiança que __a média da diferença da popularidade da linguagem python entre os dias da semana e os finais de semana está entre [2050.237, 2213.209]__. Ou seja, __durante a semana há, em média, entre 2050 e 2213 usuários a mais alterando arquivos python que no final de semana__.
+
+Em relação a linguagem C, um comportamente semelhante é observado, onde a linguagem é mais popular durante a semana que nos finais de semana. __No caso de C, a média de usuários que utilizam a linguagem durante a semana é maior que durante o final de semana por aproximadamente [508.6982, 571.2462], também com 95% de confiança.__
+
+Ambos os intervalos de confiança estão destacados em azul no gráfico. __Vale ressaltar que os intervalos de confiança mostrados estimam a diferença média da população__.
+
+Vamos agora observar os intervalos de confiança das duas linguagens:
+
 ```{r}
 df = data.frame(rbind(ci.python, ci.c), row.names = c("mean_diff_python", "mean_diff_c"))
 df$medida = row.names(df)
@@ -290,93 +298,51 @@ df$medida = row.names(df)
 df %>%
   ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
   geom_errorbar(width = .2) +
-  ggtitle("Intervalos de confiança para a diferença na média de usuários") +
-  labs(x = "Linguagem (amostra)", y = "Intervalo de confiança") +
-  scale_x_discrete(labels = c("mean_diff_python"="Python (dds-fds)", "mean_diff_c"="C (dds-fds)"))
+  ggtitle("Intervalos de confiança para a diferença na média de popularidade (dds-fds)") +
+  labs(x = "Linguagem (dia da semana - fim de semana)", y = "Intervalo de confiança") +
+  scale_x_discrete(labels = c("mean_diff_python"="Python", "mean_diff_c"="C"))
 ```
+
+Pelo gráfico, que também há uma diferença significativa entre as duas linguagens (já que as barras de erro não se cruzam). No entanto, não podemos afirmar quanto é essa diferença.
 
 ## 3.2 Comparação da popularidade durante a semana entre as duas linguagens
 
-Nessa seção, queremos saber agora se há uma diferença significativa de popularidade entre as duas linguagens (_pelo menos foi isso que entendi da pergunta_). Para isso, vamos utilizar a mesma abordagem que na seção anterior, porém agora nossas amostra são representadas pelos dados das linguagens python e c (sem separar por fim de semana e dias de semana).
+Nessa seção, queremos saber agora se há uma diferença significativa de popularidade entre as duas linguagens quando comparamos a variação de popularidade durante os dias da semana. Para isso, vamos utilizar a mesma abordagem que na seção anterior, porém agora nossas amostra são representadas pelos dados das linguagens python e c (apenas dias de semana).
 
 ```{r}
-dados_python_dds <- dados_python_dds %>% mutate(variacao_pop = c(usuarios[2:length(usuarios)], 0) - usuarios)
-dados_c_dds <- dados_c_dds %>% mutate(variacao_pop = c(usuarios[2:length(usuarios)], 0) - usuarios)
+mean.diff <- bootstrap2(dados_python_dds, data2 = dados_c_dds, sd(usuarios), R = 4000, seed = 1234)
 
-# remove a ultima linha
-dados_python_dds <- dados_python_dds[1:nrow(dados_python_dds)-1, ]
-dados_c_dds <- dados_c_dds[1:nrow(dados_c_dds)-1, ]
-```
+ci.diff <- CI.percentile(mean.diff, probs = c(.025, .975))
 
-```{r, fig.width=12, fig.height=4}
-plot_python <- dados_python_dds %>%
-  ggplot(aes(x = c(1:length(variacao_pop)), y = variacao_pop)) +
-  geom_line()
-
-plot_c <- dados_c_dds %>%
-  ggplot(aes(x = c(1:length(variacao_pop)), y = variacao_pop)) +
-  geom_line()
-
-multiplot(plot_python, plot_c, cols = 2)
-```
-
-
-
-```{r, fig.width=12, fig.height=4}
-mean.python <- bootstrap(dados_python, mean(usuarios), R = 4000)
-mean.c <- bootstrap(dados_c, mean(usuarios), R = 4000)
-
-ci.python <- CI.bca(mean.python, probs = c(0.025, 0.975))
-ci.c <- CI.bca(mean.c, probs = c(0.025, 0.975))
-
-plot_python <- mean.python$replicates %>%
+mean.diff$replicates %>%
   as.data.frame() %>%
-  ggplot(aes(x = `mean(usuarios)`)) +
+  ggplot(aes(x = `sd(usuarios): dados_python_dds-dados_c_dds`)) +
   geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_python$usuarios), color = "green") +
-  geom_vline(xintercept = as.vector(ci.python)[1], color = "blue") +
-  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue") +
-  ggtitle("Distribuição amostral da média de usuários (python)") +
-  labs(x = "Média de usuários", y = "Quantidade")
+  geom_vline(xintercept = as.vector(ci.diff)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.diff)[2], color = "blue") +
+  ggtitle("Distribuição amostral do desvio-padrão da popularidade") +
+  labs(x = "Desvio-padrão de usuários", y = "Quantidade")
 
-plot_c <- mean.c$replicates %>%
-  as.data.frame() %>%
-  ggplot(aes(x = `mean(usuarios)`)) +
-  geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_c$usuarios), color = "yellow") +
-  geom_vline(xintercept = as.vector(ci.c)[1], color = "blue") +
-  geom_vline(xintercept = as.vector(ci.c)[2], color = "blue") +
-  ggtitle("Distribuição amostral da média de usuários (c)") +
-  labs(x = "Média de usuários", y = "Quantidade")
-
-
-multiplot(plot_python, plot_c, cols = 2)
-
-ci.python
-ci.c
+ci.diff
 ```
 
-Com 95% de confiança, podemos estimar que __a média da população para linguagem python deve estar entre [3944.799, 4139.601]. Enquanto que para a linguagem c, a média da população deve estar entre [1241.243, 1296.882]__. Novamente, os intervalos de confiança apresentam pouca variação. Os intervalos de confiança são representados em azul no gráfico. As linhas verde e amarela representam as médias dos dados da linguagem python e c, respectivamente.
+Com 95% de confiança, podemos estimar que __a diferença entre o desvio-padrão da popularidade das duas linguagem durante a semana para a população deve estar entre [275.0108, 405.1479]. Ou seja, há uma diferença significativa na variação de popularidade das linguagens durante a semana__.
 
-Para finalizar, vamos plotar os intervalos de confiança para cada linguagem:
+Para finalizar, vamos plotar esse intervalo de confiança:
 
 ```{r, fig.align="center"}
-df = data.frame(rbind(ci.python, ci.c), row.names = c("mean_python", "mean_c"))
-df$medida = row.names(df)
-
-df %>%
-  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
-  geom_errorbar(width = .2) +
-  ggtitle("Intervalo de Confiança para a média de usuários") +
-  labs(x = "Linguagem", y = "Quantidade") +
-  scale_x_discrete(labels = c("mean_c"="C", "mean_python"="Python"))
-
+ci.diff %>%
+  as_data_frame() %>%
+  ggplot(aes(x = 0, ymin = `2.5%`, ymax = `97.5%`)) +
+  geom_errorbar() +
+  geom_hline(yintercept = 0, color="orange")+
+  ggtitle("Intervalo de Confiança para a diferença dos desvios-padrões da popularidade")
 ```
 
-Pelo gráfico, podemos concluir que __há uma diferença significativa entre as popularidades da linguagem c e python, uma vez que os intervalor de confiança não se cruzam__.
+Pelo gráfico, podemos concluir que __há uma diferença significativa entre as popularidades da linguagem c e python, uma vez que o intervalo de confiança não cruza o valor zero__.
 
 # 4. Conclusões
 
 * O _bootstrap_ se mostrou uma técnica eficiente para estimar os parâmetros da população. Quatro mil repetições foram efetuadas sobre as amostras ($n \approx 500$);
 * Com 95% de confiança, há uma diferença significativa entre as popularidades das linguagens python e c durante a semana e durante os finais de semana;
-* Há uma diferença significativa entre as popularidades das linguagens python e c para um nível de confiança de 95%;
+* Há uma diferença significativa entre a variação de popularidade das linguagens python e c para um nível de confiança de 95%;
