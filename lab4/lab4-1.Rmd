@@ -252,100 +252,75 @@ Em ambas as respostas das questões, __vamos efetuar 4000 repetições de _boots
 
 A primeira inferência que vamos aplicar será para comparar a popularidade de cada linguagem durante a semana e durante o fim de semana. Nesse caso, queremos saber se, para cada linguagem, há uma diferença significativa entre a popularidade durante a semana e durante o fim de semana. Em outras palavras: __Será que a linguagem em questão é mais popular durante a semana do que durante o fim de semana?__
 
-Primeiramente, eu vou analisar a popularidade da linguagem python:
-
 ```{r, fig.width=12, fig.height=4}
-mean.python_fds = bootstrap(dados_python_fds, mean(usuarios), R = 4000)
-mean.python_dds = bootstrap(dados_python_dds, mean(usuarios), R = 4000)
+mean.python <- bootstrap2(dados_python_dds, data2 = dados_python_fds, mean(usuarios), R = 4000)
+mean.c <- bootstrap2(dados_c_dds, data2 = dados_c_fds, mean(usuarios), R = 4000)
 
-ci.python_fds = mean.python_fds %>% CI.bca(probs = c(.025, .975))
-ci.python_dds = mean.python_dds %>% CI.bca(probs = c(.025, .975))
+ci.python <- mean.python %>% CI.percentile(probs = c(.025, .975))
+ci.c <- mean.c %>% CI.percentile(probs = c(.025, .975))
 
-plot_python_fds <- mean.python_fds$replicates %>%
+plot_python <- mean.python$replicates %>%
   as.data.frame() %>%
-  ggplot(aes(x = `mean(usuarios)`)) +
+  ggplot(aes(x = `mean(usuarios): dados_python_dds-dados_python_fds`)) +
   geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_python_fds$usuarios), color = 'green') +
-  geom_vline(xintercept = as.vector(ci.python_fds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.python_fds)[2], color = "blue") +
-  ggtitle("Distribuição amostral da média de usuários durante fim de semana") +
-  labs(x = "Média de usuários", y = "Quantidade")
+  geom_vline(xintercept = as.vector(ci.python)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue") +
+  ggtitle("Distribuição amostral da diferença entre dds e fds (python)") +
+  labs(x = "Média da diferença entre dds-fds", y = "Quantidade")
 
-plot_python_dds <- mean.python_dds$replicates %>%
+plot_c <- mean.c$replicates %>%
   as.data.frame() %>%
-  ggplot(aes(x = `mean(usuarios)`)) +
+  ggplot(aes(x = `mean(usuarios): dados_c_dds-dados_c_fds`)) +
   geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_python_dds$usuarios), color = 'yellow')+
-  geom_vline(xintercept = as.vector(ci.python_dds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.python_dds)[2], color = "blue") +
-  ggtitle("Distribuição amostral da média de usuários durante a semana") +
-  labs(x = "Média de usuários", y = "Quantidade")
+  geom_vline(xintercept = as.vector(ci.c)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.c)[2], color = "blue") +
+  ggtitle("Distribuição amostral da diferença entre dds e fds (c)") +
+  labs(x = "Média da diferença entre dds-fds", y = "Quantidade")
 
-multiplot(plot_python_fds, plot_python_dds, cols = 2)
+multiplot(plot_python, plot_c, cols = 2)
 
-ci.python_fds
-ci.python_dds
+ci.python
+ci.c
 ```
 
-Pelos gráficos acima, conseguimos afirmar com 95% de confiança que __a média de usuários que alteram arquivos python durante o final de semana está entre [2467.722, 2576.545]__. Por outro lado, __a média de usuários durante a semana está entre [4588.282, 4709.251], também com 95% de confiança__. Ambos os intervalos de confiança estão destacados em azul no gráfico. As linhas amarela e verde representam, respectivamente, as médias de usuários que editam arquivos python durante o fim de semana e durante a semana (média dos dados originais onde foram efetuados os _bootstrap_). __Vale ressaltar que os intervalos de confiança mostrados estimam a média da população__.
-
-Vamos observar o mesmo gráfico para a popularidade da linguagem c:
-
-```{r, fig.width=12, fig.height=4}
-mean.c_fds = bootstrap(dados_c_fds, mean(usuarios), R = 4000)
-mean.c_dds = bootstrap(dados_c_dds, mean(usuarios), R = 4000)
-
-ci.c_fds = mean.c_fds %>% CI.bca(probs = c(.025, .975))
-ci.c_dds = mean.c_dds %>% CI.bca(probs = c(.025, .975))
-
-plot_c_fds <- mean.c_fds$replicates %>%
-  as.data.frame() %>%
-  ggplot(aes(x = `mean(usuarios)`)) +
-  geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_c_fds$usuarios), color = 'green') +
-  geom_vline(xintercept = as.vector(ci.c_fds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.c_fds)[2], color = "blue") +
-  ggtitle("Distribuição amostral da média de usuários durante a semana") +
-  labs(x = "Média de usuários", y = "Quantidade")
-
-plot_c_dds <- mean.c_dds$replicates %>%
-  as.data.frame() %>%
-  ggplot(aes(x = `mean(usuarios)`)) +
-  geom_histogram(binwidth = 1) +
-  geom_vline(xintercept = mean(dados_c_dds$usuarios), color = 'yellow') +
-  geom_vline(xintercept = as.vector(ci.c_dds)[1], color = "blue") + 
-  geom_vline(xintercept = as.vector(ci.c_dds)[2], color = "blue") +
-  ggtitle("Distribuição amostral da média de usuários durante a semana") +
-  labs(x = "Média de usuários", y = "Quantidade")
-
-multiplot(plot_c_fds, plot_c_dds, cols = 2)
-
-ci.c_fds
-ci.c_dds
-```
-
-No caso da linguagem c, temos que __a média da população deve estar entre [862.9063, 906.2229] para os fins de semana e entre [1397.398, 1445.802] para os dias da semana, com 95% de confiança__. As cores das linhas contém o mesmo significado que no gráfico anterior, exceto que para as amostras da linguagem c.
-
-Para terminar de responder a primeira questão, vamos plotar os intervalos de confiança com a ajuda de barras de erro:
-
-```{r,fig.align="center"}
-df = data.frame(rbind(ci.python_fds, ci.python_dds, ci.c_fds, ci.c_dds), row.names = c("mean_python_fds", "mean_python_dds", "mean_c_fds", "mean_c_dds"))
+```{r}
+df = data.frame(rbind(ci.python, ci.c), row.names = c("mean_diff_python", "mean_diff_c"))
 df$medida = row.names(df)
 
 df %>%
   ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
   geom_errorbar(width = .2) +
-  ggtitle("Intervalos de confiança para a média de usuários") +
+  ggtitle("Intervalos de confiança para a diferença na média de usuários") +
   labs(x = "Linguagem (amostra)", y = "Intervalo de confiança") +
-  scale_x_discrete(labels = c("mean_c_dds"="C (semana)", "mean_c_fds"="C (fim de semana)", "mean_python_dds"="Python (semana)", "mean_python_fds"="Python (fim de semana)"))
-
+  scale_x_discrete(labels = c("mean_diff_python"="Python (dds-fds)", "mean_diff_c"="C (dds-fds)"))
 ```
-
-Como não houve nenhuma interseção entre as barras de erro para cada linguagem, podemos concluir que __há uma diferença significativa entre as populações das duas linguagens para fins de semana e durante a semana__.
 
 ## 3.2 Comparação da popularidade durante a semana entre as duas linguagens
 
 Nessa seção, queremos saber agora se há uma diferença significativa de popularidade entre as duas linguagens (_pelo menos foi isso que entendi da pergunta_). Para isso, vamos utilizar a mesma abordagem que na seção anterior, porém agora nossas amostra são representadas pelos dados das linguagens python e c (sem separar por fim de semana e dias de semana).
+
+```{r}
+dados_python_dds <- dados_python_dds %>% mutate(variacao_pop = c(usuarios[2:length(usuarios)], 0) - usuarios)
+dados_c_dds <- dados_c_dds %>% mutate(variacao_pop = c(usuarios[2:length(usuarios)], 0) - usuarios)
+
+# remove a ultima linha
+dados_python_dds <- dados_python_dds[1:nrow(dados_python_dds)-1, ]
+dados_c_dds <- dados_c_dds[1:nrow(dados_c_dds)-1, ]
+```
+
+```{r, fig.width=12, fig.height=4}
+plot_python <- dados_python_dds %>%
+  ggplot(aes(x = c(1:length(variacao_pop)), y = variacao_pop)) +
+  geom_line()
+
+plot_c <- dados_c_dds %>%
+  ggplot(aes(x = c(1:length(variacao_pop)), y = variacao_pop)) +
+  geom_line()
+
+multiplot(plot_python, plot_c, cols = 2)
+```
+
+
 
 ```{r, fig.width=12, fig.height=4}
 mean.python <- bootstrap(dados_python, mean(usuarios), R = 4000)
