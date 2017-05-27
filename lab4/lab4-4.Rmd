@@ -1,0 +1,134 @@
+---
+title: "Lab 4 - Checkpoint 4"
+author: "Arnaldo Gualberto"
+date: "27/05/2017"
+output: 
+  html_document:
+    smart: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+O objetivo do checkpoint 4 do Lab 4 é analisar estatísticamente os dados de uma amostra do Github e responder duas perguntas. As amostras do Github correspondem a quantidade de desenvolvedores que alteraram arquivos com certa extensão entre 1º de Janeiro de 2016 e 10 de Maio de 2017. As duas perguntas que resolvi responder são:
+
+* **Há uma diferença significativa entre a popularidade de uma linguagem entre sábado e domingo?**
+* **Há uma diferença significativa entre o número de desenvolvedores entre final de semana e dias da semana?**
+
+Decidi utilizar a linguagem _python_ para responder a primeira pergunta. 
+
+# 0. Imports and Settings
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+library(knitr)
+library(lubridate, warn.conflicts = FALSE)
+library(readr)
+library(resample)
+library(reshape2)
+source('multiplot.R')
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
+```
+
+# 1. Carregamento e limpeza dos dados
+
+Primeiramente, vou carregar os dados e alterar o nome de suas colunas para facilitar o entendimento:
+
+```{r, message=FALSE}
+dados_github <- read_csv("data/github-data.csv")
+names(dados_github) <- c("extensao", "dia", "mes", "ano", "usuarios")
+glimpse(dados_github)
+```
+
+Agora, vou criar duas novas colunas: uma com a data por completo e outra com o dia da semana correspondente:
+
+```{r}
+dados_all <- dados_github %>%
+  mutate(data = ymd(paste(ano, mes, dia)), dia_da_semana = wday(data, label = T))
+
+glimpse(dados_all)
+```
+
+# 2. Análise Descritiva
+
+Antes de responder as duas perguntas, vou efetuar algumas análises descritivas em cima dos dados que eu acredito que me ajudarão a responder as perguntas além de me ajudar a entender os dados. 
+
+Logo, vou começar carregando os dados de python para somente para os fins de semana e comparar com todos os dados:
+
+```{r}
+dados_python <- dados_all %>% filter(extensao == "py" & (dia_da_semana == "Sat" | dia_da_semana == "Sun"))
+
+summary(dados_python)
+```
+```{r}
+dados_all_fds <- dados_all %>% filter(dia_da_semana == "Sat" | dia_da_semana == "Sun")
+
+summary(dados_all_fds)
+```
+
+```{r}
+dados_all_dds <- dados_all %>% filter(dia_da_semana != "Sat" & dia_da_semana != "Sun")
+
+summary(dados_all_dds)
+```
+
+Vamos analisar o boxplot:
+
+```{r}
+dados_python %>%
+  ggplot(aes(x = dia_da_semana, y =  usuarios, group = dia_da_semana)) +
+  geom_boxplot() +
+  ggtitle("Usuários da linguagem python") +
+  labs(x = "", y = "Usuários")
+```
+
+```{r}
+ggplot() +
+  geom_boxplot(data = dados_all_fds, aes(x = "Final de Semana", y = usuarios)) +
+  geom_boxplot(data = dados_all_dds, aes(x = "Dias da Semana", y = usuarios))
+```
+
+```{r}
+dados_python %>%
+  ggplot(aes(x=usuarios, group = dia_da_semana)) +
+  geom_density(aes(color = dia_da_semana)) +
+  geom_vline(xintercept = mean(dados_python$usuarios), linetype = "dashed") +
+  geom_vline(xintercept = median(dados_python$usuarios)) +
+  ggtitle("Densidade de usuários (python)") +
+  labs(x = "Usuários", y = "Densidade")
+```
+
+```{r}
+ggplot() +
+  geom_density(data = dados_all_fds, aes(x = usuarios, colour = "Final de Semana")) +
+  geom_density(data = dados_all_dds, aes(x = usuarios, colour = "Dia da Semana")) +
+  geom_vline(xintercept = mean(dados_all$usuarios), linetype = "dashed") +
+  geom_vline(xintercept = median(dados_all$usuarios))
+```
+
+
+```{r}
+dados_python %>%
+  group_by(dia_da_semana) %>%
+  summarise(total_usuarios = mean(usuarios)) %>%
+  ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Quantidade de usuários no final de semana (python)") +
+  labs(x = "Dia da semana", y = "Total de usuários")
+```
+
+```{r}
+ggplot() +
+  geom_col(aes(x = "Final de Semana", y = median(dados_all_fds$usuarios))) +
+  geom_col(aes(x = "Dia da Semana", y = median(dados_all_dds$usuarios)))
+```
+
+# 3. Inferência estatística
+
+```{r}
+
+```
+
