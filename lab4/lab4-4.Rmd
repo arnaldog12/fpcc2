@@ -59,7 +59,7 @@ Antes de responder as duas perguntas, vou efetuar algumas análises descritivas 
 Logo, vou começar carregando os dados de python para somente para os fins de semana e comparar com todos os dados:
 
 ```{r}
-dados_python <- dados_all %>% filter(extensao == "py" & (dia_da_semana == "Sat" | dia_da_semana == "Sun"))
+dados_python <- dados_all %>% filter(extensao == "py" & (dia_da_semana == "Sat" | dia_da_semana == "Sun")) %>% droplevels()
 
 summary(dados_python)
 ```
@@ -128,7 +128,62 @@ ggplot() +
 
 # 3. Inferência estatística
 
-```{r}
+## 3.1 Há uma diferença significativa entre a popularidade de uma linguagem entre sábado e domingo?
 
+```{r}
+mean.python <- bootstrap2(dados_python, median(usuarios), treatment = dia_da_semana, R = 2000, seed = 42)
+ci.python <- mean.python %>% CI.percentile(probs = c(.025, .975))
+
+mean.python$replicates %>%
+  as.data.frame() %>%
+  ggplot(aes(x = `median(usuarios): Sun-Sat`)) +
+  geom_histogram(bins = 50) +
+  geom_vline(xintercept = as.vector(ci.python)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue")
+
+ci.python
+```
+
+```{r}
+ci.python %>%
+  as.data.frame() %>%
+  ggplot(aes(x = "Python", ymin = `2.5%`, ymax = `97.5%`)) +
+  geom_errorbar(width = .2) +
+  geom_hline(yintercept = 0, color = "red")
+```
+
+## 3.2 Há uma diferença significativa entre o número de desenvolvedores entre final de semana e dias da semana?
+
+```{r}
+mean.all <- bootstrap2(dados_all_dds, data2 = dados_all_fds, median(usuarios), R = 2000, seed = 42)
+ci.all <- mean.all %>% CI.percentile(probs = c(.025, .975))
+
+mean.all$replicates %>%
+  as.data.frame() %>%
+  ggplot(aes(x = `median(usuarios): dados_all_dds-dados_all_fds`)) +
+  geom_histogram(bins = 50) +
+  geom_vline(xintercept = as.vector(ci.all)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.all)[2], color = "blue")
+
+ci.all
+```
+
+```{r}
+ci.all %>%
+  as.data.frame() %>%
+  ggplot(aes(x = "Github", ymin = `2.5%`, ymax = `97.5%`)) +
+  geom_errorbar(width = .2) +
+  geom_hline(yintercept = 0, color = "red")
+```
+
+
+```{r}
+df <- data.frame(rbind(ci.python, ci.all), row.names = c("median_diff_python", "median_diff_github"))
+df$medida = row.names(df)
+
+df %>%
+  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
+  geom_errorbar(width = .2) +
+  geom_hline(yintercept = 0, color = "red")
 ```
 
