@@ -13,10 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 O objetivo do checkpoint 4 do Lab 4 é analisar estatísticamente os dados de uma amostra do Github e responder duas perguntas. As amostras do Github correspondem a quantidade de desenvolvedores que alteraram arquivos com certa extensão entre 1º de Janeiro de 2016 e 10 de Maio de 2017. As duas perguntas que resolvi responder são:
 
-* **Há uma diferença significativa entre a popularidade de uma linguagem entre sábado e domingo?**
+* **Há uma diferença significativa entre a popularidade de uma linguagem entre Sábado e Domingo?**
 * **Há uma diferença significativa entre o número de desenvolvedores entre final de semana e dias da semana?**
 
-Decidi utilizar a linguagem _python_ para responder a primeira pergunta. 
+Decidi utilizar a linguagem _python_ para responder a primeira pergunta. Além disso, inicialmente eu acredito que haja uma diferença significativa na segunda pergunta, ao contrário da primeira.
 
 # 0. Imports and Settings
 ```{r}
@@ -54,15 +54,14 @@ glimpse(dados_all)
 
 # 2. Análise Descritiva
 
-Antes de responder as duas perguntas, vou efetuar algumas análises descritivas em cima dos dados que eu acredito que me ajudarão a responder as perguntas além de me ajudar a entender os dados. 
-
-Logo, vou começar carregando os dados de python para somente para os fins de semana e comparar com todos os dados:
+Antes de responder as duas perguntas, vou efetuar algumas análises descritivas em cima dos dados que eu acredito que me ajudarão a responder as perguntas além de me ajudar a entender os dados. Logo, vou começar carregando os dados de python e github que vou utilizar para essa análise:
 
 ```{r}
 dados_python <- dados_all %>% filter(extensao == "py" & (dia_da_semana == "Sat" | dia_da_semana == "Sun")) %>% droplevels()
 
 summary(dados_python)
 ```
+
 ```{r}
 dados_all_fds <- dados_all %>% filter(dia_da_semana == "Sat" | dia_da_semana == "Sun")
 
@@ -75,7 +74,9 @@ dados_all_dds <- dados_all %>% filter(dia_da_semana != "Sat" & dia_da_semana != 
 summary(dados_all_dds)
 ```
 
-Vamos analisar o boxplot:
+Pelos dados acima, conseguimos ver que a faixa de usuários que alteram arquivos python no final de semana está entre [1445-3103]. Essa faixa de valores é bem menor em comparação aos dados durante a semana e durante o fim de semana do github, respectivamente [501-7293] e [501-10279]. No entanto, tanto a média quanto a mediana dos dados de python são maiores que em comparação a ambos os dados do github.
+
+Para facilitar a visualização dessas informações, vamos analisar o boxplot de cada dado:
 
 ```{r}
 dados_python %>%
@@ -85,11 +86,19 @@ dados_python %>%
   labs(x = "", y = "Usuários")
 ```
 
+O boxplot acima nos mostra a semelhança entre a quantidade de usuários que alteram arquivos python entre Sábado e Domingo. __A faixa de valores, o IQR e a mediana dos dados de Domingo são ligeiramente maiores quando comparados a sábado__.
+
 ```{r}
 ggplot() +
   geom_boxplot(data = dados_all_fds, aes(x = "Final de Semana", y = usuarios)) +
   geom_boxplot(data = dados_all_dds, aes(x = "Dias da Semana", y = usuarios))
 ```
+
+Já para os dados do github, __a principal diferença é a faixa de valores__, como mostrado anteriormente. __A IQR para os dias da semana também é maior em comparação ao fim de semana. Entretanto, a mediana dos dois boxplots são bem parecidas__.
+
+Vale salientar que em ambos os boxplots mostrado a cima, os pontos definidos como outlier, ao meu ver, não representam realmente outliers nos nossos dados. Pois, seus valores são plausíveis para a quantidade de usuários da plataforma.
+
+Agora, quero analisar a densidade da distribuição de usuários de ambos os dados. Vou começar analisando os dados da linguagem python:
 
 ```{r}
 dados_python %>%
@@ -101,6 +110,10 @@ dados_python %>%
   labs(x = "Usuários", y = "Densidade")
 ```
 
+O gráfico acima nos mostra distribuições bem semelhantes em relação a quantidade de usuários no Sábado e Domingo. __Ambas apresentam uma distribuição à direita com cauda curta à esquerda__. Além disso, __a média (linha vertica tracejada) e mediana (linha vertical contínua) são bem semelhantes__.
+
+Como serão essa distribuições nos dados do github:
+
 ```{r}
 ggplot() +
   geom_density(data = dados_all_fds, aes(x = usuarios, colour = "Final de Semana")) +
@@ -109,11 +122,14 @@ ggplot() +
   geom_vline(xintercept = median(dados_all$usuarios))
 ```
 
+No caso do github, a distribuição de usuários nos dias da semana e durante o fim de semana também são, de certa forma, parecidas. No entanto, agora __as distribuições são concentradas à esquerda com cada longa à direita__. Ademais, também pode-se dizer que ambas as distribuições apresentam bimodalidade ou até trimodalidade. A média (linha vertical tracejada) e a mediana (linha vertical contínua) agora são mais distantes que no caso de python. Quando formos efetuar a inferência estatística, devemos levar isso em consideração.
+
+Para finalizar a análise descritiva, quero analisar a mediana de usuários para os dados de cada uma das análises que vou efetuar.
 
 ```{r}
 dados_python %>%
   group_by(dia_da_semana) %>%
-  summarise(total_usuarios = mean(usuarios)) %>%
+  summarise(total_usuarios = median(usuarios)) %>%
   ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
   geom_bar(stat = "identity", fill = "blue") +
   ggtitle("Quantidade de usuários no final de semana (python)") +
@@ -126,12 +142,20 @@ ggplot() +
   geom_col(aes(x = "Dia da Semana", y = median(dados_all_dds$usuarios)))
 ```
 
+Os gráficos de barra acima nos mostram que as medianas de usuários em cada gráfico são bem parecidas. Isso talvez demonstre que não há uma diferença significante entre as amostras. Vamos verificar isso na próxima seção.
+
 # 3. Inferência estatística
 
-## 3.1 Há uma diferença significativa entre a popularidade de uma linguagem entre sábado e domingo?
+Como os dados que temos representam apenas uma amostra da população, teremos de efetuar o _bootstrap_ para estimar estatísticas da população, calcular os intervalos de confiança e, consequentemente, compará-las. Neste trabalho vamos estimar a mediana da população, uma vez que essa estatística é mais robusta em relação a média.
+
+Em ambas as respostas das questões, __vamos calcular o intervalo de confiança para 95%__.
+
+## 3.1 Há uma diferença significativa entre a popularidade de uma linguagem entre Sábado e Domingo?
+
+A primeira inferência que vamos aplicar será para comparar a popularidade da linguagem python entre Sábado e Domingo. Nesse caso, queremos saber se há uma diferença significativa de popularidade de python entre Sábado e Domingo. Em outras palavras: __Será que python é mais popular no Sábado que no Domingo (ou vice-versa)? Se sim, quanto é essa diferença?__.
 
 ```{r}
-mean.python <- bootstrap2(dados_python, median(usuarios), treatment = dia_da_semana, R = 2000, seed = 42)
+mean.python <- bootstrap2(dados_python, median(usuarios), treatment = dia_da_semana, R = 4000, seed = 42)
 ci.python <- mean.python %>% CI.percentile(probs = c(.025, .975))
 
 mean.python$replicates %>%
@@ -144,6 +168,12 @@ mean.python$replicates %>%
 ci.python
 ```
 
+Pelo gráfico acima, podemos afirmar com 95% de confiança que __a diferença da mediana da popularidade de python entre Sábado e Domingo está entre [-65, 236.651]__. Ou seja, __durante a semana a mediana de usuários alterando arquivos python no Domingo pode ser menor ou maior que no Sábado__.
+
+Ambos os intervalos de confiança estão destacados em azul no gráfico. __Vale ressaltar que os intervalos de confiança mostrados estimam a diferença mediana da população__.
+
+Vamos agora observar os intervalos de confiança na forma de barras de erro:
+
 ```{r}
 ci.python %>%
   as.data.frame() %>%
@@ -152,7 +182,11 @@ ci.python %>%
   geom_hline(yintercept = 0, color = "red")
 ```
 
+Pelo gráfico acima, uma vez que o intervalo de confiança cruza o valor zero, __NÃO há diferença significativa entre a popularidade da linguagem python entre Sábado e Domingo (com 95% de confiança)__. Isso significa que nem sempre a popularidade de python no Domingo é maior que no Sábado. Como dito anteriormente, esse resultado era esperado.
+
 ## 3.2 Há uma diferença significativa entre o número de desenvolvedores entre final de semana e dias da semana?
+
+Vamos agora analisar se existe uma diferença significativa de desenvolvedores entre o final de semana e os dias da semana. Em outras palavras, agora queremos saber: __Será que a quantidade de desenvolvedores durante a semana no github é significantemente maior que nos finais de semana?__.
 
 ```{r}
 mean.all <- bootstrap2(dados_all_dds, data2 = dados_all_fds, median(usuarios), R = 2000, seed = 42)
@@ -168,6 +202,10 @@ mean.all$replicates %>%
 ci.all
 ```
 
+Com 95% de confiança, podemos estimar que __a diferença entre a mediana da popularidade dos desenvolvedores durante a semana e o fim de semana deve estar entre [-4.54947, 161.0495]__. Novamente, o intervalo de confiança está destacado em linhas verticas azuis no gráfico.
+
+Quando plotamos o intervalo de confiança na forma de barras de erro:
+
 ```{r}
 ci.all %>%
   as.data.frame() %>%
@@ -176,6 +214,9 @@ ci.all %>%
   geom_hline(yintercept = 0, color = "red")
 ```
 
+Novamente, como o intervalo de confiança cruza o valor zero, __podemos afimar com 95% de confiança que não há uma diferença significativa entre a popularidade do github entre o fim de semana e os dias da semana__. Em geral, a quantidade mediana de desenvolvedores durante a semana é maior que no fim de semana, mas nem sempre. Dessa vez, o resultado obtido foi diferente do esperado.
+
+A título de curiosidade, quero analisar as duas barras de erro no mesmo gráfico:
 
 ```{r}
 df <- data.frame(rbind(ci.python, ci.all), row.names = c("median_diff_python", "median_diff_github"))
@@ -187,3 +228,4 @@ df %>%
   geom_hline(yintercept = 0, color = "red")
 ```
 
+É interessante notar que o intervalo de confiança da população do python (entre sábado e domingo) é maior que a da população do github (durante a semana e fim de semana).
