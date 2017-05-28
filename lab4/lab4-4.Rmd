@@ -59,39 +59,42 @@ Antes de responder as duas perguntas, vou efetuar algumas análises descritivas 
 ```{r}
 dados_python <- dados_all %>% filter(extensao == "py" & (dia_da_semana == "Sat" | dia_da_semana == "Sun")) %>% droplevels()
 
-summary(dados_python)
+summary(dados_python) %>% kable()
 ```
 
 ```{r}
 dados_all_fds <- dados_all %>% filter(dia_da_semana == "Sat" | dia_da_semana == "Sun")
 
-summary(dados_all_fds)
+summary(dados_all_fds) %>% kable()
 ```
 
 ```{r}
 dados_all_dds <- dados_all %>% filter(dia_da_semana != "Sat" & dia_da_semana != "Sun")
 
-summary(dados_all_dds)
+summary(dados_all_dds) %>% kable()
 ```
 
 Pelos dados acima, conseguimos ver que a faixa de usuários que alteram arquivos python no final de semana está entre [1445-3103]. Essa faixa de valores é bem menor em comparação aos dados durante a semana e durante o fim de semana do github, respectivamente [501-7293] e [501-10279]. No entanto, tanto a média quanto a mediana dos dados de python são maiores que em comparação a ambos os dados do github.
 
 Para facilitar a visualização dessas informações, vamos analisar o boxplot de cada dado:
 
-```{r}
+```{r, fig.align='center'}
 dados_python %>%
   ggplot(aes(x = dia_da_semana, y =  usuarios, group = dia_da_semana)) +
   geom_boxplot() +
-  ggtitle("Usuários da linguagem python") +
-  labs(x = "", y = "Usuários")
+  ggtitle("Popularidade da linguagem python") +
+  labs(x = "", y = "Usuários") +
+  scale_x_discrete(labels = c("Sun"="Domingo", "Sat"="Sábado"))
 ```
 
 O boxplot acima nos mostra a semelhança entre a quantidade de usuários que alteram arquivos python entre Sábado e Domingo. __A faixa de valores, o IQR e a mediana dos dados de Domingo são ligeiramente maiores quando comparados a sábado__.
 
-```{r}
+```{r, fig.align='center'}
 ggplot() +
   geom_boxplot(data = dados_all_fds, aes(x = "Final de Semana", y = usuarios)) +
-  geom_boxplot(data = dados_all_dds, aes(x = "Dias da Semana", y = usuarios))
+  geom_boxplot(data = dados_all_dds, aes(x = "Dias da Semana", y = usuarios)) +
+  ggtitle("Popularidade do Github") +
+  labs(x = "", y = "Usuários")
 ```
 
 Já para os dados do github, __a principal diferença é a faixa de valores__, como mostrado anteriormente. __A IQR para os dias da semana também é maior em comparação ao fim de semana. Entretanto, a mediana dos dois boxplots são bem parecidas__.
@@ -100,7 +103,7 @@ Vale salientar que em ambos os boxplots mostrado a cima, os pontos definidos com
 
 Agora, quero analisar a densidade da distribuição de usuários de ambos os dados. Vou começar analisando os dados da linguagem python:
 
-```{r}
+```{r, fig.align='center'}
 dados_python %>%
   ggplot(aes(x=usuarios, group = dia_da_semana)) +
   geom_density(aes(color = dia_da_semana)) +
@@ -114,32 +117,37 @@ O gráfico acima nos mostra distribuições bem semelhantes em relação a quant
 
 Como serão essa distribuições nos dados do github:
 
-```{r}
+```{r, fig.align='center'}
 ggplot() +
   geom_density(data = dados_all_fds, aes(x = usuarios, colour = "Final de Semana")) +
   geom_density(data = dados_all_dds, aes(x = usuarios, colour = "Dia da Semana")) +
   geom_vline(xintercept = mean(dados_all$usuarios), linetype = "dashed") +
-  geom_vline(xintercept = median(dados_all$usuarios))
+  geom_vline(xintercept = median(dados_all$usuarios)) +
+  ggtitle("Densidade de usuários (github)") +
+  labs(x = "Usuários", y = "Densidade")
 ```
 
 No caso do github, a distribuição de usuários nos dias da semana e durante o fim de semana também são, de certa forma, parecidas. No entanto, agora __as distribuições são concentradas à esquerda com cada longa à direita__. Ademais, também pode-se dizer que ambas as distribuições apresentam bimodalidade ou até trimodalidade. A média (linha vertical tracejada) e a mediana (linha vertical contínua) agora são mais distantes que no caso de python. Quando formos efetuar a inferência estatística, devemos levar isso em consideração.
 
 Para finalizar a análise descritiva, quero analisar a mediana de usuários para os dados de cada uma das análises que vou efetuar.
 
-```{r}
+```{r, fig.align='center'}
 dados_python %>%
   group_by(dia_da_semana) %>%
   summarise(total_usuarios = median(usuarios)) %>%
   ggplot(aes(x = dia_da_semana, y = total_usuarios)) +
   geom_bar(stat = "identity", fill = "blue") +
-  ggtitle("Quantidade de usuários no final de semana (python)") +
-  labs(x = "Dia da semana", y = "Total de usuários")
+  ggtitle("Mediana de usuários no final de semana (python)") +
+  labs(x = "", y = "Mediana") +
+  scale_x_discrete(labels = c("Sun"="Domingo", "Sat"="Sábado"))
 ```
 
-```{r}
+```{r, fig.align='center'}
 ggplot() +
-  geom_col(aes(x = "Final de Semana", y = median(dados_all_fds$usuarios))) +
-  geom_col(aes(x = "Dia da Semana", y = median(dados_all_dds$usuarios)))
+  geom_col(aes(x = "Final de Semana", y = median(dados_all_fds$usuarios), fill = "red")) +
+  geom_col(aes(x = "Dia da Semana", y = median(dados_all_dds$usuarios), fill = "red")) +
+  ggtitle("Mediana de usuários (github)") +
+  labs(x = "", y = "Mediana")
 ```
 
 Os gráficos de barra acima nos mostram que as medianas de usuários em cada gráfico são bem parecidas. Isso talvez demonstre que não há uma diferença significante entre as amostras. Vamos verificar isso na próxima seção.
@@ -154,7 +162,7 @@ Em ambas as respostas das questões, __vamos calcular o intervalo de confiança 
 
 A primeira inferência que vamos aplicar será para comparar a popularidade da linguagem python entre Sábado e Domingo. Nesse caso, queremos saber se há uma diferença significativa de popularidade de python entre Sábado e Domingo. Em outras palavras: __Será que python é mais popular no Sábado que no Domingo (ou vice-versa)? Se sim, quanto é essa diferença?__.
 
-```{r}
+```{r, fig.align='center'}
 mean.python <- bootstrap2(dados_python, median(usuarios), treatment = dia_da_semana, R = 4000, seed = 42)
 ci.python <- mean.python %>% CI.percentile(probs = c(.025, .975))
 
@@ -163,7 +171,9 @@ mean.python$replicates %>%
   ggplot(aes(x = `median(usuarios): Sun-Sat`)) +
   geom_histogram(bins = 50) +
   geom_vline(xintercept = as.vector(ci.python)[1], color = "blue") +
-  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.python)[2], color = "blue") +
+  ggtitle("Distribuição amostral (python)") +
+  labs(x = "Diferença entre medianas de usuários (Dom - Sáb)", y = "Quantidade")
 
 ci.python
 ```
@@ -174,12 +184,14 @@ Ambos os intervalos de confiança estão destacados em azul no gráfico. __Vale 
 
 Vamos agora observar os intervalos de confiança na forma de barras de erro:
 
-```{r}
+```{r, fig.align='center'}
 ci.python %>%
   as.data.frame() %>%
   ggplot(aes(x = "Python", ymin = `2.5%`, ymax = `97.5%`)) +
   geom_errorbar(width = .2) +
-  geom_hline(yintercept = 0, color = "red")
+  geom_hline(yintercept = 0, color = "red") +
+  ggtitle("Intervalo de Confiança") +
+  labs(x = "", y = "Diferença das medianas (Dom - Sáb)")
 ```
 
 Pelo gráfico acima, uma vez que o intervalo de confiança cruza o valor zero, __NÃO há diferença significativa entre a popularidade da linguagem python entre Sábado e Domingo (com 95% de confiança)__. Isso significa que nem sempre a popularidade de python no Domingo é maior que no Sábado. Como dito anteriormente, esse resultado era esperado.
@@ -188,7 +200,7 @@ Pelo gráfico acima, uma vez que o intervalo de confiança cruza o valor zero, _
 
 Vamos agora analisar se existe uma diferença significativa de desenvolvedores entre o final de semana e os dias da semana. Em outras palavras, agora queremos saber: __Será que a quantidade de desenvolvedores durante a semana no github é significantemente maior que nos finais de semana?__.
 
-```{r}
+```{r, fig.align='center'}
 mean.all <- bootstrap2(dados_all_dds, data2 = dados_all_fds, median(usuarios), R = 2000, seed = 42)
 ci.all <- mean.all %>% CI.percentile(probs = c(.025, .975))
 
@@ -197,7 +209,9 @@ mean.all$replicates %>%
   ggplot(aes(x = `median(usuarios): dados_all_dds-dados_all_fds`)) +
   geom_histogram(bins = 50) +
   geom_vline(xintercept = as.vector(ci.all)[1], color = "blue") +
-  geom_vline(xintercept = as.vector(ci.all)[2], color = "blue")
+  geom_vline(xintercept = as.vector(ci.all)[2], color = "blue") +
+  ggtitle("Distribuição amostral (github)") +
+  labs(x = "Diferença entre medianas de usuários (dds - fds)", y = "Quantidade")
 
 ci.all
 ```
@@ -206,26 +220,31 @@ Com 95% de confiança, podemos estimar que __a diferença entre a mediana da pop
 
 Quando plotamos o intervalo de confiança na forma de barras de erro:
 
-```{r}
+```{r, fig.align='center'}
 ci.all %>%
   as.data.frame() %>%
   ggplot(aes(x = "Github", ymin = `2.5%`, ymax = `97.5%`)) +
   geom_errorbar(width = .2) +
-  geom_hline(yintercept = 0, color = "red")
+  geom_hline(yintercept = 0, color = "red") +
+  ggtitle("Intervalo de Confiança") +
+  labs(x = "", y = "Diferença das medianas (dds - fds)")
 ```
 
 Novamente, como o intervalo de confiança cruza o valor zero, __podemos afimar com 95% de confiança que não há uma diferença significativa entre a popularidade do github entre o fim de semana e os dias da semana__. Em geral, a quantidade mediana de desenvolvedores durante a semana é maior que no fim de semana, mas nem sempre. Dessa vez, o resultado obtido foi diferente do esperado.
 
 A título de curiosidade, quero analisar as duas barras de erro no mesmo gráfico:
 
-```{r}
+```{r, fig.align='center'}
 df <- data.frame(rbind(ci.python, ci.all), row.names = c("median_diff_python", "median_diff_github"))
 df$medida = row.names(df)
 
 df %>%
   ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
   geom_errorbar(width = .2) +
-  geom_hline(yintercept = 0, color = "red")
+  geom_hline(yintercept = 0, color = "red") +
+  ggtitle("Intervalo de Confiança") +
+  labs(x = "", y = "Diferença das medianas") +
+  scale_x_discrete(labels = c("median_diff_python"="Python (Dom - Sáb)", "median_diff_github"="Github (dds - fds)"))
 ```
 
 É interessante notar que o intervalo de confiança da população do python (entre sábado e domingo) é maior que a da população do github (durante a semana e fim de semana).
