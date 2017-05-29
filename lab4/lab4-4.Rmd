@@ -40,7 +40,8 @@ Primeiramente, vou carregar os dados e alterar o nome de suas colunas para facil
 ```{r, message=FALSE}
 dados_github <- read_csv("data/github-data.csv")
 names(dados_github) <- c("extensao", "dia", "mes", "ano", "usuarios")
-glimpse(dados_github)
+
+head(dados_github) %>% kable()
 ```
 
 Agora, vou criar duas novas colunas: uma com a data por completo e outra com o dia da semana correspondente:
@@ -49,7 +50,7 @@ Agora, vou criar duas novas colunas: uma com a data por completo e outra com o d
 dados_all <- dados_github %>%
   mutate(data = ymd(paste(ano, mes, dia)), dia_da_semana = wday(data, label = T))
 
-glimpse(dados_all)
+head(dados_all) %>% kable()
 ```
 
 # 2. Análise Descritiva
@@ -87,7 +88,7 @@ dados_python %>%
   scale_x_discrete(labels = c("Sun"="Domingo", "Sat"="Sábado"))
 ```
 
-O boxplot acima nos mostra a semelhança entre a quantidade de usuários que alteram arquivos python entre Sábado e Domingo. __A faixa de valores, o IQR e a mediana dos dados de Domingo são ligeiramente maiores quando comparados a sábado__.
+O boxplot acima nos mostra a semelhança entre a quantidade de usuários que alteram arquivos python entre Sábado e Domingo. __A faixa de valores, o IQR e a mediana dos dados de Domingo são ligeiramente maiores quando comparados ao Sábado__.
 
 ```{r, fig.align='center'}
 ggplot() +
@@ -115,7 +116,7 @@ dados_python %>%
 
 O gráfico acima nos mostra distribuições bem semelhantes em relação a quantidade de usuários no Sábado e Domingo. __Ambas apresentam uma distribuição à direita com cauda curta à esquerda__. Além disso, __a média (linha vertica tracejada) e mediana (linha vertical contínua) são bem semelhantes__.
 
-Como serão essa distribuições nos dados do github:
+Como serão essa distribuições nos dados do github?
 
 ```{r, fig.align='center'}
 ggplot() +
@@ -147,7 +148,8 @@ ggplot() +
   geom_col(aes(x = "Final de Semana", y = median(dados_all_fds$usuarios), fill = "red")) +
   geom_col(aes(x = "Dia da Semana", y = median(dados_all_dds$usuarios), fill = "red")) +
   ggtitle("Mediana de usuários (github)") +
-  labs(x = "", y = "Mediana")
+  labs(x = "", y = "Mediana") +
+  theme(legend.position = "none")
 ```
 
 Os gráficos de barra acima nos mostram que as medianas de usuários em cada gráfico são bem parecidas. Isso talvez demonstre que não há uma diferença significante entre as amostras. Vamos verificar isso na próxima seção.
@@ -178,7 +180,7 @@ mean.python$replicates %>%
 ci.python
 ```
 
-Pelo gráfico acima, podemos afirmar com 95% de confiança que __a diferença da mediana da popularidade de python entre Sábado e Domingo está entre [-65, 236.651]__. Ou seja, __durante a semana a mediana de usuários alterando arquivos python no Domingo pode ser menor ou maior que no Sábado__.
+Pelo gráfico acima, podemos afirmar com 95% de confiança que __a diferença da mediana da popularidade de python entre Sábado e Domingo está entre [-65, 236.651]__. Ou seja, __a mediana de usuários alterando arquivos python no Domingo pode ser menor ou maior que no Sábado__.
 
 Ambos os intervalos de confiança estão destacados em azul no gráfico. __Vale ressaltar que os intervalos de confiança mostrados estimam a diferença mediana da população__.
 
@@ -194,7 +196,7 @@ ci.python %>%
   labs(x = "", y = "Diferença das medianas (Dom - Sáb)")
 ```
 
-Pelo gráfico acima, uma vez que o intervalo de confiança cruza o valor zero, __NÃO há diferença significativa entre a popularidade da linguagem python entre Sábado e Domingo (com 95% de confiança)__. Isso significa que nem sempre a popularidade de python no Domingo é maior que no Sábado. Como dito anteriormente, esse resultado era esperado.
+Pelo gráfico acima, uma vez que o intervalo de confiança cruza o valor zero por ampla margem, __NÃO há diferença significativa entre a popularidade da linguagem python entre Sábado e Domingo (com 95% de confiança)__. Isso significa que nem sempre a popularidade de python no Domingo é maior que no Sábado. Como dito anteriormente, esse resultado era esperado.
 
 ## 3.2 Há uma diferença significativa entre o número de desenvolvedores entre final de semana e dias da semana?
 
@@ -232,19 +234,23 @@ ci.all %>%
 
 Novamente, como o intervalo de confiança cruza o valor zero, __podemos afimar com 95% de confiança que não há uma diferença significativa entre a popularidade do github entre o fim de semana e os dias da semana__. Em geral, a quantidade mediana de desenvolvedores durante a semana é maior que no fim de semana, mas nem sempre. Dessa vez, o resultado obtido foi diferente do esperado.
 
-A título de curiosidade, quero analisar as duas barras de erro no mesmo gráfico:
+Vale ressaltar que, como o intervalo de confiança cruzou o valor zero por uma pequena margem, podemos tentar diminuir o nível de confiança pra ver se podemos afirmar uma diferença significativa:
 
 ```{r, fig.align='center'}
-df <- data.frame(rbind(ci.python, ci.all), row.names = c("median_diff_python", "median_diff_github"))
-df$medida = row.names(df)
+ci.all_90 <- mean.all %>% CI.percentile(probs = c(.05, .95))
 
-df %>%
-  ggplot(aes(x = medida, ymin = X2.5., ymax = X97.5.)) +
+ci.all_90 %>%
+  as.data.frame() %>%
+  ggplot(aes(x = "Github", ymin = `5%`, ymax = `95%`)) +
   geom_errorbar(width = .2) +
   geom_hline(yintercept = 0, color = "red") +
   ggtitle("Intervalo de Confiança") +
-  labs(x = "", y = "Diferença das medianas") +
-  scale_x_discrete(labels = c("median_diff_python"="Python (Dom - Sáb)", "median_diff_github"="Github (dds - fds)"))
+  labs(x = "", y = "Diferença das medianas (dds - fds)")
 ```
 
-É interessante notar que o intervalo de confiança da população do python (entre sábado e domingo) é maior que a da população do github (durante a semana e fim de semana).
+Nesse caso, podemos afirmar com __90% de confiança que existe uma diferença significativa entre a mediana de desenvolvedores do github durante a semana e durante o fim de semana__.
+
+# 4. Conclusões
+
+* Com 95% de confiança, não há uma diferença significativa entre a popularidade de python aos sábados e domingos;
+* Com 95% de confiança, não há uma diferença significativa entre a popularidade do github durante a semana e durante o fim de semana. No entanto, essa diferença é significativa com 90% de confiança.
