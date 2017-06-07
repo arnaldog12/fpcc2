@@ -1,0 +1,65 @@
+---
+title: "Lab 4 - Checkpoint 5"
+author: "Arnaldo Gualberto"
+date: "06/06/2017"
+output: 
+  html_document:
+    smart: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Descrever seu teste: o que está sendo comparado? Qual a permutação sendo feita?
+
+2. Relatar seu resultado: a diferença é significativa? Qual o p-valor? Reporte segundo as boas práticas dos materiais aqui do canvas e os exemplos que você viu no CP de exemplos de inferência (os que tinham p-valor, naturalmente).
+
+3. Comentar sobre as vantagens e desvantagens que você vê no resultado ao qual chegou agora e no CP 4 para a mesma pergunta. 
+
+# 0. Imports and Settings
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+library(knitr)
+library(lubridate, warn.conflicts = FALSE)
+library(readr)
+library(resample)
+```
+
+# 1. Carregamento e limpeza dos dados
+
+```{r, message=FALSE}
+dados_github <- read_csv("data/github-data.csv")
+names(dados_github) <- c("extensao", "dia", "mes", "ano", "usuarios")
+
+dados_github <- dados_github %>%
+  mutate(data = ymd(paste(ano, mes, dia)), dia_da_semana = wday(data, label = T)) %>%
+  mutate(fim_de_semana = ifelse(dia_da_semana == "Sat" | dia_da_semana == "Sun", "Sim", "Não"))
+
+head(dados_github) # %>% kable()
+```
+
+# 2. Teste de Permutação
+
+```{r}
+mean.all <- bootstrap2(dados_github, median(usuarios), treatment = fim_de_semana, R = 2000, seed = 42)
+ci.all <- mean.all %>% CI.percentile(probs = c(.025, .975))
+
+ci.all %>%
+  as.data.frame() %>%
+  ggplot(aes(x = "Github", ymin = `2.5%`, ymax = `97.5%`)) +
+  geom_errorbar(width = .2) +
+  geom_hline(yintercept = 0, color = "red") +
+  ggtitle("Intervalo de Confiança") +
+  labs(x = "", y = "Diferença das medianas (dds - fds)")
+
+ci.all
+```
+
+```{r}
+pt <- permutationTest2(dados_github, median(usuarios), treatment = fim_de_semana, R = 2000, seed = 42)
+pt$stats %>% t()
+```
+
+
