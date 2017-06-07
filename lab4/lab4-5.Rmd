@@ -11,6 +11,10 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+O objetivo do checkpoint 5 do Lab 4 é utilizar teste de hipóteses com permutação para responder uma das perguntas do checkpoint 4 do Lab 5. 
+
+Os dados originais são de uma amostra do Github que correspondem a quantidade de desenvolvedores que alteraram arquivos com certa extensão entre 1º de Janeiro de 2016 e 10 de Maio de 2017. __Neste trabalho, vamos comparar a popularidade de desenvolvedores no Github durante a semana e durante o fim de semana__. Em outras palavras, queremos saber se a quantidade de desenvolvedores durante a semana no Github é significativamente maior que nos finais de semana. Para isso, __vamos utilizar o teste de hipótese com permutação__.
+
 1. Descrever seu teste: o que está sendo comparado? Qual a permutação sendo feita?
 
 2. Relatar seu resultado: a diferença é significativa? Qual o p-valor? Reporte segundo as boas práticas dos materiais aqui do canvas e os exemplos que você viu no CP de exemplos de inferência (os que tinham p-valor, naturalmente).
@@ -25,9 +29,14 @@ library(knitr)
 library(lubridate, warn.conflicts = FALSE)
 library(readr)
 library(resample)
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
 ```
 
 # 1. Carregamento e limpeza dos dados
+
+Primeiramente, vou carregar os dados e efetuar algumas transformações: alterar o nome das colunas para melhor entendimento; criar uma coluna com o dia da semana correspondente; e criar outra coluna dizendo se o dia da semana corresponde a fim de semana (sábado/domingo) ou não. Logo:
 
 ```{r, message=FALSE}
 dados_github <- read_csv("data/github-data.csv")
@@ -40,7 +49,9 @@ dados_github <- dados_github %>%
 head(dados_github) # %>% kable()
 ```
 
-# 2. Teste de Permutação
+# 2. Teste de Hipótese
+
+Antes de efeutar o teste de hipótese, vou plotar novamente o intervalo de confiança para a amostra de desenvolvedores do Github durante a semana e durante o fim de semana:
 
 ```{r}
 mean.all <- bootstrap2(dados_github, median(usuarios), treatment = fim_de_semana, R = 2000, seed = 42)
@@ -57,9 +68,18 @@ ci.all %>%
 ci.all
 ```
 
+Na atividade anterior concluímos __com 95% de confiança de que não há uma diferença significativa entre a popularidade do github entre o fim de semana e os dias da semana__, visto que o intervalo de confiança cruza o valor zero (linha horizontal vermelha).
+
+Agora, vamos efetuar o teste de hipótese com permutação. Primeiramente, vou definir as hipóteses nula ($H_0$) e alternativa ($H_a$):
+
+* $H_0: M_{dds}=M_{fds}$ (a mediana de desenvolvedores durante a semana é igual ao fim de semana)
+* $H_a: M_{dds} \ne M_{fds}$ (a mediana de desenvolvedores durante a semana é diferente em relação ao fim de semana)
+
+Ainda, o teste de hipótese que vamos utilizar será _two-tailed_, com nível de significância $\alpha=95\%$.
+
 ```{r}
-pt <- permutationTest2(dados_github, median(usuarios), treatment = fim_de_semana, R = 2000, seed = 42)
+pt <- permutationTest2(dados_github, median(usuarios), treatment = fim_de_semana, alternative = "two.sided", R = 2000, seed = 42)
 pt$stats %>% t()
 ```
 
-
+Logo, dado que a hipótese nula ($H_0$) é verdadeira, a probabilidade de se obter um teste estatístico mais extremo que o observado é 0.1509245. Como $p\mbox{-}value > 0.05$, não podemos rejeitar $H_0$. Portanto, não há uma diferença significativa entre a popularidade de desenvolvedores durante a semana e durante o fim de semana.
