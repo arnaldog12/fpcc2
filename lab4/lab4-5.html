@@ -188,7 +188,7 @@ ci.all %&gt;%
 <li><span class="math inline">\(H_0: M_{dds}=M_{fds}\)</span> (a mediana de desenvolvedores durante a semana é igual ao fim de semana)</li>
 <li><span class="math inline">\(H_a: M_{dds} \ne M_{fds}\)</span> (a mediana de desenvolvedores durante a semana é diferente em relação ao fim de semana)</li>
 </ul>
-<p>Ainda, o teste de hipótese que vamos utilizar será <em>two-tailed</em>, com nível de significância <span class="math inline">\(\alpha=95\%\)</span>.</p>
+<p>Ainda, o teste de hipótese que vamos utilizar será <em>two-tailed</em>, com nível de significância <span class="math inline">\(\alpha=0.05\)</span> (95%).</p>
 <pre class="r"><code>pt &lt;- permutationTest2(dados_github, median(usuarios), treatment = fim_de_semana, alternative = &quot;two.sided&quot;, R = 2000, seed = 42)
 pt$stats %&gt;% t()</code></pre>
 <pre><code>##             median(usuarios): Não-Sim
@@ -196,7 +196,8 @@ pt$stats %&gt;% t()</code></pre>
 ## Mean        &quot;1.4775&quot;                 
 ## Alternative &quot;two.sided&quot;              
 ## PValue      &quot;0.1509245&quot;</code></pre>
-<p>Logo, dado que a hipótese nula (<span class="math inline">\(H_0\)</span>) é verdadeira, a probabilidade de se obter um teste estatístico mais extremo que o observado é 0.1509245. Como <span class="math inline">\(p\mbox{-}value &gt; 0.05\)</span>, não podemos rejeitar <span class="math inline">\(H_0\)</span>. Portanto, não há uma diferença significativa entre a popularidade de desenvolvedores durante a semana e durante o fim de semana.</p>
+<p>Logo, <strong>dado que a hipótese nula (<span class="math inline">\(H_0\)</span>) é verdadeira, a probabilidade de se obter um teste estatístico mais extremo que o observado é 0.1509245. Como <span class="math inline">\(p\mbox{-}value &gt; 0.05\)</span>, não podemos rejeitar <span class="math inline">\(H_0\)</span>. Portanto, não há uma diferença significativa entre a popularidade de desenvolvedores durante a semana e durante o fim de semana</strong>.</p>
+<p>Finalmente, em comparação com o lab anterior - onde foi utilizado o intervalo de confiança-, podemos dizer que o teste de hipótese é mais fácil de aplicar. Porém, pessoalmente considero o intervalo de confiança mais intuitivo do que o <em>p-value</em> e, por ser visual, mais fácil de interpretar.</p>
 </section>
 
 

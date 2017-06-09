@@ -75,11 +75,14 @@ Agora, vamos efetuar o teste de hipótese com permutação. Primeiramente, vou d
 * $H_0: M_{dds}=M_{fds}$ (a mediana de desenvolvedores durante a semana é igual ao fim de semana)
 * $H_a: M_{dds} \ne M_{fds}$ (a mediana de desenvolvedores durante a semana é diferente em relação ao fim de semana)
 
-Ainda, o teste de hipótese que vamos utilizar será _two-tailed_, com nível de significância $\alpha=95\%$.
+Ainda, o teste de hipótese que vamos utilizar será _two-tailed_, com nível de significância $\alpha=0.05$ (95%).
 
 ```{r}
 pt <- permutationTest2(dados_github, median(usuarios), treatment = fim_de_semana, alternative = "two.sided", R = 2000, seed = 42)
 pt$stats %>% t()
 ```
 
-Logo, dado que a hipótese nula ($H_0$) é verdadeira, a probabilidade de se obter um teste estatístico mais extremo que o observado é 0.1509245. Como $p\mbox{-}value > 0.05$, não podemos rejeitar $H_0$. Portanto, não há uma diferença significativa entre a popularidade de desenvolvedores durante a semana e durante o fim de semana.
+Logo, __dado que a hipótese nula ($H_0$) é verdadeira, a probabilidade de se obter um teste estatístico mais extremo que o observado é 0.1509245. Como $p\mbox{-}value > 0.05$, não podemos rejeitar $H_0$. Portanto, não há uma diferença significativa entre a popularidade de desenvolvedores durante a semana e durante o fim de semana__.
+
+Finalmente, em comparação com o lab anterior - onde foi utilizado o intervalo de confiança-, podemos dizer que o teste de hipótese é mais fácil de aplicar. Porém, pessoalmente considero o intervalo de confiança mais intuitivo do que o _p-value_ e, por ser visual, mais fácil de interpretar.
+
