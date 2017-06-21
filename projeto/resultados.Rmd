@@ -7,21 +7,53 @@ output:
     smart: no
 ---
 
+O objetivo do meu trabalho é treinar um algoritmo de machine learning que seja capaz de classificar singularidades de impressões digitais. Portanto, eu optei por treinar um SVM. Detalhes do treinamento do classificador podem ser conferidos no arquivo _.ipynb_ no mesmo diretório desse relatório. Ao todo, tenho 5506 imagens divididas em 3 classes (1682 cores, 1980 deltas e 1854 falsas singularidades). Além disso, dividi essas imagens em treinamento e teste (500 imagens de cada classe). Ademais, 30% do banco de treinamento é utilizado para validação. 
+
+Para este relatório, eu testei o classificador treinado em 10000 amostras do banco de teste (com reposição) e calculei a acurácia do classificador em cada amostras. Logo, os 10000 scores serão utilizados para cálculo do intervalo de confiança.
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+# 0. Imports and Settings
 
 ```{r}
 library(dplyr, warn.conflicts = FALSE)
 library(ggplot2)
 library(readr)
 library(resample)
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
 ```
 
-```{r}
+# 1. Carregamento dos dados
+
+```{r, message=FALSE}
 dados <- read_csv('scores.txt', col_names = "scores")
 dados <- as.data.frame(dados)
+
+dados %>% head()
 ```
+
+Como dito, os dados que vamos utilizar para essa análise são os scores de acurácia para cada uma das 10000 amostras do banco de teste.
+
+```{r}
+summary(dados$scores)
+```
+
+Podemos ver que o classificador treinado apresentou bons resultados, visto que a média de acurácia obtida foi de aproximadamente 99,60% no banco de teste.
+
+Vamos agora analisar essa tabela em forma de gráfico boxplot:
+
+```{r, fig.align='center'}
+dados %>%
+  ggplot(aes(x = 0, y = scores)) +
+  geom_boxplot() +
+  geom_point(position = position_jitter(width = .2), alpha=0.1)
+```
+
+Agora, vamos analisar a distribuição dos scores:
 
 ```{r}
 dados %>%
@@ -30,6 +62,7 @@ dados %>%
   geom_vline(xintercept = mean(dados$scores), color = "yellow")
 ```
 
+Por fim, vamos calcular o intervalo de confiança utilizando o método bootstrap:
 
 ```{r}
 mean.scores <- bootstrap(dados, mean(scores), R=10000, seed = 42)
@@ -46,13 +79,4 @@ mean.scores$replicates %>%
 ci.scores
 ```
 
-```{r}
-dados %>%
-  ggplot(aes(x=scores)) +
-  geom_histogram(bins=20) +
-  geom_vline(xintercept = as.vector(ci.scores)[1], color = "blue") +
-  geom_vline(xintercept = as.vector(ci.scores)[2], color = "blue") +
-  geom_vline(xintercept = mean(dados$scores), color = "yellow")
-```
-
-
+Pode-se afirmar, então, com 95% de confiança, que a acurácia média da população está entre [0.9959, 0.9960].
