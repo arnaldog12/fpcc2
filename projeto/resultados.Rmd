@@ -1,0 +1,58 @@
+---
+title: "Resultados"
+author: "Arnaldo Gualberto"
+date: "21 de junho de 2017"
+output: 
+  html_document:
+    smart: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+library(ggplot2)
+library(readr)
+library(resample)
+```
+
+```{r}
+dados <- read_csv('scores.txt', col_names = "scores")
+dados <- as.data.frame(dados)
+```
+
+```{r}
+dados %>%
+  ggplot(aes(x=scores)) +
+  geom_histogram(bins = 20) +
+  geom_vline(xintercept = mean(dados$scores), color = "yellow")
+```
+
+
+```{r}
+mean.scores <- bootstrap(dados, mean(scores), R=10000, seed = 42)
+ci.scores <- mean.scores %>% CI.bca(probs = c(0.025, 0.975))
+
+mean.scores$replicates %>%
+  as.data.frame() %>%
+  ggplot(aes(x = `mean(scores)`)) +
+  geom_histogram(bins=50) +
+  geom_vline(xintercept = as.vector(ci.scores)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.scores)[2], color = "blue") +
+  geom_vline(xintercept = mean(dados$scores), color = "yellow")
+
+ci.scores
+```
+
+```{r}
+dados %>%
+  ggplot(aes(x=scores)) +
+  geom_histogram(bins=20) +
+  geom_vline(xintercept = as.vector(ci.scores)[1], color = "blue") +
+  geom_vline(xintercept = as.vector(ci.scores)[2], color = "blue") +
+  geom_vline(xintercept = mean(dados$scores), color = "yellow")
+```
+
+
