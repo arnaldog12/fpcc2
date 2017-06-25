@@ -29,15 +29,17 @@ O objetivo checkpoint 2 do Lab 5 é avaliar se a aparência física (beleza) de 
 
 queremos avaliar se a beleza possui um efeito significativo no score dos professores, levando em conta os demais fatores que foram identificados como tento possíveis efeitos, que são as variáveis rank, ethnicity, gender, language, age, cls_*, pic_outfit e pic_color
 
-# 0. Imports
+# 0. Imports and Settings
 
-```{r}
+```{r, message=FALSE}
 library(broom)
 library(dplyr, warn.conflicts = FALSE)
+library(ggfortify)
 library(GGally, warn.conflicts = FALSE)
 library(ggplot2)
 library(modelr, warn.conflicts = FALSE)
 library(readr)
+library(simpleboot)
 
 source('multiplot.R')
 
@@ -85,23 +87,19 @@ ggplot() +
 
 ```{r}
 dados %>%
-  ggplot()
-```
-
-
-```{r}
-dados %>%
   ggplot(aes(x = bty_avg, y = score)) +
   geom_point(alpha = 0.5)
 ```
 
 # 3. Regressão Linear
 
+### 3.1 Regressão linear simples
 ```{r}
 mod <- lm(data = dados, score ~ bty_avg)
 
-tidy(mod)
-glance(mod)
+summary(mod)
+tidy(mod, conf.int = TRUE)
+glance(mod, conf.int = TRUE)
 
 dados %>%
   add_predictions(mod) %>%
@@ -118,5 +116,35 @@ dados %>%
   geom_hline(yintercept = 0, colour = "blue")
 ```
 
+```{r}
+set.seed(42)
+
+mod.boot <- lm.boot(mod, R = 5000)
+summary(mod.boot)
+```
+
+```{r}
+perc(mod.boot, p = c(0.025, 0.975))
+```
+
+```{r}
+confint(mod)
+```
+
+```{r}
+# http://rpubs.com/sinhrks/plot_lm 
+autoplot(mod) + theme_bw()
+```
+
+### 3.2 Regressão Linear Múltipla
+
+```{r}
+mod <- lm(data = dados, score ~ . )
+
+summary(mod)
+tidy(mod, conf.int = TRUE)
+glance(mod, conf.int = TRUE)
+```
 
 # 4. Conclusões
+
