@@ -1,0 +1,122 @@
+---
+title: "Lab 5 - Checkpoint 2"
+author: "Arnaldo Gualberto"
+date: "25/06/2017"
+output: 
+  html_document:
+    smart: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+O objetivo checkpoint 2 do Lab 5 é avaliar se a aparência física (beleza) de um professor influência significativamente na avaliação docente dos professores pelos alunos. Além disso, vamos também analisar se outras variáveis influenciaram na nota da avalização, são elas:
+
+* __nível do professor (_rank_)__: horista (_teaching_), assistente (_tenure track_) ou titular (_tenured_)
+* __etnia (_ethnicity_)__: não minoria ou minoria
+* __gênero (_gender_)__: feminino ou masculino
+* __linguagem (_language_)__: inglês ou não inglês 
+* __idade (_age_)__: idade do professor
+* __porcentagem de alunos na turma que concluíram a avaliação (_cls_perc_eval_)__
+* __número de alunos na turma que concluíram a avaliação (_cls_did_level_)__
+* __número total de alunos na turma (_cls_students_)__
+* __nível da disciplina (_cls_level_)__: introdutória ou avançada
+* __número de professores ministrando módulos na disciplina dentro da amostra (_cls_profs_)__: único ou múltiplos
+* __número de créditos na disciplina (_cls_credits_)__: um crédito ou múltiplos créditos
+* __roupa do professor na foto avaliada (_pic_outfit_)__: informal ou formal
+* __cor da foto avaliada (_pic_color_)__: colorida ou preto e branco
+
+queremos avaliar se a beleza possui um efeito significativo no score dos professores, levando em conta os demais fatores que foram identificados como tento possíveis efeitos, que são as variáveis rank, ethnicity, gender, language, age, cls_*, pic_outfit e pic_color
+
+# 0. Imports
+
+```{r}
+library(broom)
+library(dplyr, warn.conflicts = FALSE)
+library(GGally, warn.conflicts = FALSE)
+library(ggplot2)
+library(modelr, warn.conflicts = FALSE)
+library(readr)
+
+source('multiplot.R')
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
+```
+
+# 1. Importação dos Dados
+
+```{r}
+dados <- read_csv("data/evals.csv")
+```
+
+Além das colunas citadas anteriormente, também podemos ver outras colunas. A coluna _score_ representa a média da avaliação do docente e é essa variável que tentaremos predizer. As colunas _bty\_\*_ representam a avaliação da beleza do professor feita por seis alunos de diferentes sexos e períodos (iniciante e avançado).
+
+# 2. Análise Descritiva
+
+```{r}
+dados %>% summary()
+```
+
+```{r, fig.width=12}
+p1 <- dados %>%
+  ggplot(aes(x = score)) +
+  geom_bar() +
+  xlim(c(1,9))
+
+p2 <- dados %>%
+  ggplot(aes(x = bty_avg)) +
+  geom_bar() +
+  xlim(c(1,9))
+
+multiplot(p1, p2)
+```
+
+Dos 463 professores, apenas pouco mais de 10 receberam nota máxima na avaliação.
+
+```{r}
+ggplot() +
+  geom_boxplot(data = dados, aes(x = 0, y = score)) +
+  geom_point(data = dados, aes(x = 0, y = score), position = position_jitter(width = 0.2), alpha = 0.5) +
+  geom_boxplot(data = dados, aes(x = 1, y = bty_avg)) +
+  geom_point(data = dados, aes(x = 1, y = bty_avg), position = position_jitter(width = 0.2), alpha = 0.5)
+```
+
+```{r}
+dados %>%
+  ggplot()
+```
+
+
+```{r}
+dados %>%
+  ggplot(aes(x = bty_avg, y = score)) +
+  geom_point(alpha = 0.5)
+```
+
+# 3. Regressão Linear
+
+```{r}
+mod <- lm(data = dados, score ~ bty_avg)
+
+tidy(mod)
+glance(mod)
+
+dados %>%
+  add_predictions(mod) %>%
+  ggplot(aes(x = bty_avg, y = score)) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(y = pred), colour = "red")
+```
+
+```{r}
+dados %>%
+  add_residuals(mod) %>%
+  ggplot(aes(x = bty_avg, y = resid)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, colour = "blue")
+```
+
+
+# 4. Conclusões
