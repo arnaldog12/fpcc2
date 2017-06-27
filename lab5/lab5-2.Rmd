@@ -58,25 +58,103 @@ Além das colunas citadas anteriormente, também podemos ver outras colunas. A c
 
 # 2. Análise Descritiva
 
+Vamos começar nossa análise descritiva pelo sumário dos dados:
+
 ```{r}
 dados %>% summary()
 ```
 
-```{r, fig.width=12}
-p1 <- dados %>%
-  ggplot(aes(x = score)) +
-  geom_bar() +
-  xlim(c(1,9))
+O sumário dos dados nos mostra que:
 
-p2 <- dados %>%
-  ggplot(aes(x = bty_avg)) +
-  geom_bar() +
-  xlim(c(1,9))
+* Ao todo, temos 463 professores avaliados e 21 variáveis, sendo 12 númericas e 9 categóricas;
+* Na média e na mediana, os professores tem boas avaliações em geral (> 4.0);
+* Uma porcentagem razoável de estudantes respondia as pesquisas (aproximadamente 75%), sendo mais de 36 estudantes na média;
+* A média e mediana das avaliações da beleza foi bem baixa na minha opinião entre os estudantes de todos os níveis e na avaliação média.
 
-multiplot(p1, p2)
+Agora, vamos analisar a distribuição de cada uma das variáveis. Vou começar pelas variáveis numéricas:
+
+```{r, fig.width=12, fig.height=8}
+barPlot <- function(data, x)
+{
+  plot <- data %>%
+    ggplot(aes_string(x = x)) +
+    geom_bar()
+  return(plot)
+}
+
+p1 <- barPlot(dados, "score")
+p2 <- barPlot(dados, "bty_avg")
+p3 <- barPlot(dados, "age")
+p4 <- barPlot(dados, "cls_perc_eval")
+p5 <- barPlot(dados, "cls_did_eval")
+p6 <- barPlot(dados, "cls_students")
+
+multiplot(p1, p2, p3, p4, p5, p6, cols = 1)
 ```
 
-Dos 463 professores, apenas pouco mais de 10 receberam nota máxima na avaliação.
+Podemos observar que as variáveis *cls_did_eval* e *cls_students* apresentam uma distribuição concentrada à esquerda com cauda longa à direita, enquanto o *score* tem uma distribuição oposta. Além disso, *bty_avg* e *age* apresentam distribuições multimodais.
+
+Vamos ver como se comportam as variáveis categóricas:
+
+```{r, fig.width=12}
+p1 <- barPlot(dados, "rank")
+p2 <- barPlot(dados, "ethnicity")
+p3 <- barPlot(dados, "gender")
+p4 <- barPlot(dados, "language")
+p5 <- barPlot(dados, "cls_level")
+p6 <- barPlot(dados, "cls_profs")
+p7 <- barPlot(dados, "cls_credits")
+p8 <- barPlot(dados, "pic_outfit")
+p9 <- barPlot(dados, "pic_color")
+
+multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, cols = 3)
+```
+
+Os gráficos acima nos mostram o desbalanceamento dos dados, em especial sobre as variáveis *language*, *cls_credit*, *ethnicity*, *pic_outfit*, e *pic_color*, que estão presentes em menos de 100 vezes nos dados.
+
+Vamos agora analisar a dispersão das variáveis em relação ao score. Novamente, vou separar essa análise para as variáveis númericas e categóricas. No caso das variáveis númerica, também calcularei o coeficiente de correlação.
+
+```{r, fig.width=12}
+pointPlot <- function(data, x, y)
+{
+  plot <- data %>%
+    ggplot(aes_string(x = x, y = y)) +
+  geom_point(alpha = 0.3)
+  return(plot)
+}
+
+p1 <- pointPlot(dados, "age", "score")
+p2 <- pointPlot(dados, "cls_perc_eval", "score")
+p3 <- pointPlot(dados, "cls_did_eval", "score")
+p4 <- pointPlot(dados, "cls_students", "score")
+
+multiplot(p1, p2, p3, p4, cols = 2)
+
+cor(dados$age, dados$score)
+cor(dados$cls_perc_eval, dados$score)
+cor(dados$cls_did_eval, dados$score)
+cor(dados$cls_students, dados$score)
+```
+
+É possível observar que não há uma linearidade aparente entre as variáveis mostradas e o _score_. Além disso, o maior coeficiente de correlação (0.18) ocorreu para a variável *cls_perc_eval*. Mesmo assim, esse valor representa uma correlação positiva, porém fraca.
+
+```{r, fig.width=12}
+p1 <- pointPlot(dados, "rank", "score")
+p2 <- pointPlot(dados, "ethnicity", "score")
+p3 <- pointPlot(dados, "gender", "score")
+p4 <- pointPlot(dados, "language", "score")
+p5 <- pointPlot(dados, "cls_level", "score")
+p6 <- pointPlot(dados, "cls_profs", "score")
+p7 <- pointPlot(dados, "cls_credits", "score")
+p8 <- pointPlot(dados, "pic_outfit", "score")
+p9 <- pointPlot(dados, "pic_color", "score")
+
+multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, cols = 3)
+```
+
+A relação entre as variáveis categóricas e o score não nos diz muita coisa. Porém, um fato interessante que pode ser observado é a tendência de scores mais altos para disciplinas de um crédito.
+
+Por fim, vamos focar nossa análise descritiva na variável que vamos utilizar para fazer o nosso modelo linear simples: *bty_avg*. Primeiramente, vamos analisar a distribuição dos _scores_ e de *bty_avg* através de um boxplot:
 
 ```{r}
 ggplot() +
@@ -97,6 +175,7 @@ cor(dados$score, dados$bty_avg, method = "pearson")
 ```
 
 Pelo gráfico acima, já podemos avaliar algumas das condições para regressão linear:
+
 * __Linearidade__: o coeficiente de correlação nos mostra que __há pouca linearidade entre o _score_ do professor e a média da avaliação da beleza do professor. Logo, essa condição já está violada.__
 * __Outliers__: por outro lado, não há nenhum ponto amplamente afastado dos demais, representando um outlier.  
 
@@ -142,14 +221,18 @@ dados %>%
 
 
 ```{r}
-dados %>%
-  add_residuals(mod) %>%
+dados_resid <- dados %>%
+  add_residuals(mod) 
+
+dados_resid %>%
   ggplot(aes(x = resid)) +
-  geom_histogram(bins = 30) 
+  geom_histogram(bins = 30) +
+  geom_vline(xintercept = mean(dados_resid$resid), color = "green") +
+  geom_vline(xintercept = median(dados_resid$resid), color = "yellow")
 ```
 
 * __Variabilidade constante__: pelo gráfico de resíduos, podemos observar que a variabilidade dos resíduos é, de certa forma, constante. __Os resíduos não são muito distantes de zero e não se comportam diferentemente ao longo do gráfico. Logo, ao meu ver, essa condição não é violada__.
-* __Residuos aproximadamente normais__: por outro lado, o histograma nos mostra que a distribuição dos resíduos é concentrada à direita com cauda à esquerda. __Logo, essa condição foi violada__.
+* __Residuos aproximadamente normais__: por outro lado, o histograma nos mostra que a distribuição dos resíduos é concentrada à direita com cauda à esquerda. Porém, eu acredito que visualmente podemos dizer que os resíduos são aproximadamente normais, uma vez que nossa média é bem próxima da mediana (teríamos de fazer testes estatísticos pra calcular a "normalidade" da nossa curva). __Logo, essa condição não foi violada__.
 
 #### 3.1.1 Boostrap
 
@@ -180,16 +263,27 @@ Pode-se observar que os coeficientes calculados são bem próximos (se não igua
 autoplot(mod) + theme_bw()
 ```
 
-__No plot de studentized residuals, pontos com resíduos normalizados maiores que 3 são suspeitos. Para leverage, o adequado é olhar pontos com leverage muito acima dos demais, ou maior que (p + 1)/n. (p sendo o número de preditores.)__
+Analisando os gráficos acima podemos observar que os nossos resíduos são 
+
+Analisando o gráfico acima, temos:
+
+* __Residuals vs Fitted__: esse gráfico é igual ao gráfico de resíduos já discutido anteriormente.
+
+* __Normal Q-Q__: esse gráfico mostra se os resíduos são normalmente distribuídos. Como vimos anteriormente, nossos resíduos são concetrados à direita com cauda a esquerda.
+
+* __Scale-Location__: esse gráfico mostra se os resíduos espalham-se igualmente ao longo da faixa de preditores. Através desse gráfico podemos checar a homocedasticidade (suposição de variância constante para observações diferentes). A homocedasticidade é boa quando temos uma reta aproximadamente horizontal com os pontos igualmente espalhados ao longo da reta. Logo, apesar de termos uma reta aproximadamente horizonta eu acho que os pontos se espalham menos ao longo do gráfico.
+
+* __Residuals vs Leverage__: esse gráfico ajuda olhar pontos que influenciam nossa regressão significantemente (como outliers). Esses pontos são representados nesse gráfico extremamente distantes dos demais pontos - em geral nos cantos superior/inferior direito. Portanto, nosso gráfico mostra que não há pontos que se distanciam em demasia aos demais. De fato, não há outliers nos dados, como vimos na análise descritiva. 
 
 ### 3.2 Regressão Linear Múltipla
 
 Antes de ajustar o modelo da regressão para múltiplas variáveis, eu acredito que algumas variáveis serão mais importantes que outras, são elas: 
 
-* _rank_: de certa forma, professores mais experientes tem melhor didática
-* _cls\_level_: acredito que disciplinas introdutórias são mais fáceis de ministrar (pelo professor) e compreender (pelo aluno). Logo, os alunos devem tender a dar notas mais altas aos professores das disciplinas que eles aprendem mais fácil.
+* **_age_**: de certa forma, professores mais experientes tem melhor didática.
+* **_rank_**: idem.
+* **_cls\_level_**: acredito que disciplinas introdutórias são mais fáceis de ministrar (pelo professor) e compreender (pelo aluno). Logo, os alunos devem tender a dar notas mais altas aos professores das disciplinas que eles aprendem mais fácil.
 
-Vamos, então, ver se eu tenho razão em alguma coisa ou não:
+Vamos, então, ver se algum palpite meu está certo:
 
 ```{r}
 multi <- lm(data = dados, score ~ . )
@@ -203,28 +297,56 @@ Pelos dados acima, agora temos que:
 
 * **as variáveis _bty\_\*_ representam as variáveis mais importantes agora, pois apresentam os maiores coeficientes de _estimate_**. É interessante notar, no entanto, que a soma das avaliações da beleza é bem próxima do negativo da média (*bty_avg*), ou seja, de certa forma elas se anulam. **Além disso, todas as variáveis de beleza (_bty\_\*_) não são estatísticamente significantes, já que o intervalo de confiança cruza o valor zero**.
 * As variáveis estatísticamente significantes (que não cruzam o valor zero e com $p\mbox{-}value < 0.05$) são: _ranktenure track_, _gendermale_, _languagenon-english_, _age_, *cls_creditsone credit*, *pic_colorcolor*. Vale salientar que praticamente todas as variáveis estatísticamente significantes são categóricas, com exceção da idade (_age_).
-* O valor de $R^2$ e $R^2\mbox{-}adjusted$ foram maiores que quando a regressão linear simples foi aplicada, o que era esperado, pois é mais fácil ajustar um modelo com mais variáveis. 
+* O valor de $R^2$ e $R^2\mbox{-}adjusted$ foram maiores que quando a regressão linear simples foi aplicada, o que era esperado, pois é mais fácil ajustar um modelo com mais variáveis. No entanto, esse valor ainda é baixo. Aproximadamente, __apenas 20% da variância da avaliação do professor é explicada pelo modelo que construimos__.
+
+Vamos fazer agora as análises dos resíduos para cada uma das variáveis mais significantes:
+
+```{r, fig.width=12}
+residPlot <- function(data, x, y)
+{
+  plot <- data %>%
+    ggplot(aes_string(x = x, y = y)) +
+  geom_point(alpha = 0.3) +
+  geom_hline(yintercept = 0, color = "red")
+  return(plot)
+}
+
+dados_resid <- dados %>% add_residuals(multi)
+
+p1 <- residPlot(dados_resid, "rank", "resid")
+p2 <- residPlot(dados_resid, "gender", "resid")
+p3 <- residPlot(dados_resid, "language", "resid")
+p4 <- residPlot(dados_resid, "age", "resid")
+p5 <- residPlot(dados_resid, "cls_credits", "resid")
+p6 <- residPlot(dados_resid, "pic_color", "resid")
+
+multiplot(p1, p2, p3, p4, p5, p6, cols = 3)
+```
+
+Em relação aos resíduos das variáveis categóricas, em geral eles são bem parecidos. Em alguns casos, como _language_ e *cls_credits*, a faixa dos resíduos para um dos valores é maior que no outro. Talvez isso seja explicado pelo desbalanceamento dos dados para cada valor. Ainda, grande parte dos resíduos se concentram entre [-1,1], ou seja, o modelo erra a nota um ponto para mais ou para menos. Por outro lado, eu observo um comportamento semelhante ao que tivemos na regressão linear para a variável _age_: a variância dos resíduos aparenta ser constante ao longo do gráfico e a distribuição dos pontos é parecida.
 
 ```{r}
-dados %>%
-  add_predictions(multi) %>%
-  select(gender, language, pred) %>%
-  ggplot(aes(x = language, y = pred, colour = gender)) +
-  geom_line() +
-  facet_grid(. ~ gender)
+dados_resid %>%
+  ggplot(aes(x = resid)) +
+  geom_histogram(bins = 30) +
+  geom_vline(xintercept = mean(dados_resid$resid), color="green") +
+  geom_vline(xintercept = median(dados_resid$resid), color="yellow")
 ```
 
 
 ```{r}
-vif(multi)
+autoplot(multi)
 ```
 
-colinearidade: Recomendação: VIF < 5 ou VIF < 10
+De acordo com o gráfico acima, temos:
 
+* __Residuals vs Fitted__: nosso gráfico de resíduos agora mostra um comportamento semelhante de quando efetuamos somente a regressão linear simples. A nossa reta ainda é aproximadamente horizontal e não há padrões não-lineares, apesar dos resíduos variarem mais em certa faixa de valores.
 
+* __Normal Q-Q__: esse gráfico confirma que nossos resíduos são normalmente distribuidos.
 
-TODO: 
-- mostrar os resíduos para diferentes variáveis de entrada
+* __Scale-Location__: novamente, temos uma reta aproximadamente horizontal com os ruídos se espalhando mais e menos ao longo do gráfico.
+
+* __Residuals vs Leverage__: como vimos anteriormente, esse gráfico confirma que não há outliers nos dados que influeciem significantemente nossa regressão.
 
 # 4. Conclusões
 
