@@ -86,15 +86,26 @@ ggplot() +
   geom_point(data = dados, aes(x = 1, y = bty_avg), position = position_jitter(width = 0.2), alpha = 0.5)
 ```
 
+Finalmente, vamos analisar a (cor)relação entre as variáveis de interesse para a regressão linear simples: *bty_avg* e _score_:
+
 ```{r}
 dados %>%
   ggplot(aes(x = bty_avg, y = score)) +
   geom_point(alpha = 0.5)
+
+cor(dados$score, dados$bty_avg, method = "pearson")
 ```
+
+Pelo gráfico acima, já podemos avaliar algumas das condições para regressão linear:
+* __Linearidade__: o coeficiente de correlação nos mostra que __há pouca linearidade entre o _score_ do professor e a média da avaliação da beleza do professor. Logo, essa condição já está violada.__
+* __Outliers__: por outro lado, não há nenhum ponto amplamente afastado dos demais, representando um outlier.  
 
 # 3. Regressão Linear
 
 ### 3.1 Regressão linear simples
+
+Vamos começar a criando o modelo linear simples para tentar predizer o score da avaliação do professor pela média da beleza:
+
 ```{r}
 mod <- lm(data = dados, score ~ bty_avg)
 
@@ -102,20 +113,6 @@ summary(mod)
 tidy(mod, conf.int = TRUE)
 glance(mod, conf.int = TRUE)
 
-dados %>%
-  add_predictions(mod) %>%
-  ggplot(aes(x = bty_avg, y = score)) +
-  geom_point(alpha = 0.5) +
-  geom_line(aes(y = pred), colour = "red")
-```
-
-```{r}
-cor(dados$score, dados$bty_avg, method = "pearson")
-```
-
-Falar sobre o coeficiente de correlação, a não-presença de outliers, não-linearidade (presente, mas não forte)
-
-```{r}
 predictions <- predict(mod, dados, interval = "predict") %>% as.data.frame()
 
 dados %>%
@@ -123,10 +120,17 @@ dados %>%
   ggplot(aes(x = bty_avg, y = score)) +
   geom_point(alpha = 0.5) +
   geom_line(aes(y = pred), colour = "red") +
-  geom_line(aes(x = bty_avg, y = predictions$lwr), colour = "blue") +
-  geom_line(aes(x = bty_avg, y = predictions$upr), colour = "blue")
+  geom_line(aes(y = predictions$lwr), colour = "blue") +
+  geom_line(aes(y = predictions$upr), colour = "blue")
 ```
 
+O gráfico e os dados acima já nos mostram informações interessantes:
+
+* A equação da nossa reta é dada por: $score = 3.88 + 0.06 \times bty\_avg$. Isso significa que __para cada unidade que aumentamos *bty_avg*, o _score_ do professor aumenta apenas 0.06__.
+* __Há uma relação linear estatística significativa entre a avaliação do professor e sua beleza__, uma vez que o intervalo de confiança do slope (*bty_avg*) não intercepta o valor zero e seu $p\mbox{-}value < 0.05$
+* __Como ambos $R^2$ e $R^2\mbox{-}adjusted$ foram baixos (0.03502226 e 0.03292903, respectivamente), a relação linear entre a beleza e o score é muito fraca__ (como confirmado pelo coeficiente de correlação). Aproximadamente, __apenas 3,5% da variância na avaliação do professor é explicada pela média da avaliação da beleza__.
+
+Temos agora que analisar o gráfico de resíduos e seu histograma para verificarmos as demais condições:
 
 ```{r}
 dados %>%
@@ -136,6 +140,21 @@ dados %>%
   geom_hline(yintercept = 0, colour = "blue")
 ```
 
+
+```{r}
+dados %>%
+  add_residuals(mod) %>%
+  ggplot(aes(x = resid)) +
+  geom_histogram(bins = 30) 
+```
+
+* __Variabilidade constante__: pelo gráfico de resíduos, podemos observar que a variabilidade dos resíduos é, de certa forma, constante. __Os resíduos não são muito distantes de zero e não se comportam diferentemente ao longo do gráfico. Logo, ao meu ver, essa condição não é violada__.
+* __Residuos aproximadamente normais__: por outro lado, o histograma nos mostra que a distribuição dos resíduos é concentrada à direita com cauda à esquerda. __Logo, essa condição foi violada__.
+
+#### 3.1.1 Boostrap
+
+Antes de efetuarmos a regressão multilinear, vamos avaliar o bootstrap no nosso modelo linear para calcularmos o intervalo de confiança do nosso modelo. Apesar desse intervalo de confiança já ter sido mostrado acima, a intenção aqui é comparar com o intervalo dado pelo bootstrap.
+
 ```{r}
 set.seed(42)
 
@@ -144,12 +163,17 @@ summary(mod.boot)
 ```
 
 ```{r}
-perc(mod.boot, p = c(0.025, 0.975))
+mod.ci <- perc(mod.boot, p = c(0.025, 0.975)) %>% as_data_frame()
+mod.ci
+confint(mod) %>% as_data_frame()
+
+mod.ci %>% 
+  ggplot(aes(x = 0, ymin = bty_avg[1], ymax = bty_avg[2])) +
+  geom_errorbar(width = 0.2) +
+  geom_hline(yintercept = 0, color="red")
 ```
 
-```{r}
-confint(mod)
-```
+Pode-se observar que os coeficientes calculados são bem próximos (se não iguais) aos apresentados anteriormente. No entanto, podemos observar uma leve diferença nos intervalos de confiança, mas nada muito significativo.
 
 ```{r}
 # http://rpubs.com/sinhrks/plot_lm 
@@ -158,14 +182,14 @@ autoplot(mod) + theme_bw()
 
 __No plot de studentized residuals, pontos com resíduos normalizados maiores que 3 são suspeitos. Para leverage, o adequado é olhar pontos com leverage muito acima dos demais, ou maior que (p + 1)/n. (p sendo o número de preditores.)__
 
-De acordo com as análises efetuadas, podemos concluir que __há uma relação linear estatística significativa entre a avaliação do professor e sua beleza__ - uma vez que o intervalo de confiança do slope (*bty_avg*) não intercepta o valor zero e seu $p\mbox{-}value < 0.05$. Além disso, __também não há sinais no gráfico de resíduos que demonstrem que não há um efeito entre o score e a média da beleza de um professor__. Isto é, os resíduos não são muito distantes de zero, não dão sinal de linearidade, e se comportam uniformemente durante o gráfico. __No entanto, como ambos $R^2$ e $R^2-adjusted$ foram baixos (0.03502226 e 0.03292903, respectivamente), a relação linear entre a beleza e o score é muito fraca__. Aproximadamente, __apenas 3,5% da variância na avaliação do professor é explicada pela média da avaliação da beleza__.
-
 ### 3.2 Regressão Linear Múltipla
 
 Antes de ajustar o modelo da regressão para múltiplas variáveis, eu acredito que algumas variáveis serão mais importantes que outras, são elas: 
 
 * _rank_: de certa forma, professores mais experientes tem melhor didática
 * _cls\_level_: acredito que disciplinas introdutórias são mais fáceis de ministrar (pelo professor) e compreender (pelo aluno). Logo, os alunos devem tender a dar notas mais altas aos professores das disciplinas que eles aprendem mais fácil.
+
+Vamos, então, ver se eu tenho razão em alguma coisa ou não:
 
 ```{r}
 multi <- lm(data = dados, score ~ . )
@@ -174,6 +198,22 @@ summary(multi)
 tidy(multi, conf.int = TRUE)
 glance(multi, conf.int = TRUE)
 ```
+
+Pelos dados acima, agora temos que:
+
+* **as variáveis _bty\_\*_ representam as variáveis mais importantes agora, pois apresentam os maiores coeficientes de _estimate_**. É interessante notar, no entanto, que a soma das avaliações da beleza é bem próxima do negativo da média (*bty_avg*), ou seja, de certa forma elas se anulam. **Além disso, todas as variáveis de beleza (_bty\_\*_) não são estatísticamente significantes, já que o intervalo de confiança cruza o valor zero**.
+* As variáveis estatísticamente significantes (que não cruzam o valor zero e com $p\mbox{-}value < 0.05$) são: _ranktenure track_, _gendermale_, _languagenon-english_, _age_, *cls_creditsone credit*, *pic_colorcolor*. Vale salientar que praticamente todas as variáveis estatísticamente significantes são categóricas, com exceção da idade (_age_).
+* O valor de $R^2$ e $R^2\mbox{-}adjusted$ foram maiores que quando a regressão linear simples foi aplicada, o que era esperado, pois é mais fácil ajustar um modelo com mais variáveis. 
+
+```{r}
+dados %>%
+  add_predictions(multi) %>%
+  select(gender, language, pred) %>%
+  ggplot(aes(x = language, y = pred, colour = gender)) +
+  geom_line() +
+  facet_grid(. ~ gender)
+```
+
 
 ```{r}
 vif(multi)
