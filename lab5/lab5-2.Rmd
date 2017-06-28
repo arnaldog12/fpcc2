@@ -127,6 +127,7 @@ p1 <- pointPlot(dados, "age", "score")
 p2 <- pointPlot(dados, "cls_perc_eval", "score")
 p3 <- pointPlot(dados, "cls_did_eval", "score")
 p4 <- pointPlot(dados, "cls_students", "score")
+p5 <- pointPlot(dados,"bty_f1lower", "score")
 
 multiplot(p1, p2, p3, p4, cols = 2)
 
@@ -174,7 +175,7 @@ Pelo gráfico acima, já podemos avaliar algumas das condições para regressão
 
 ### 3.1 Regressão linear simples
 
-Vamos começar a criando o modelo linear simples para tentar predizer o score da avaliação do professor pela média da beleza:
+Vamos começar criando o modelo linear simples para tentar predizer o score da avaliação do professor pela média da beleza:
 
 ```{r, fig.align="center"}
 mod <- lm(data = dados, score ~ bty_avg)
@@ -199,13 +200,13 @@ O gráfico e os dados acima já nos mostram informações interessantes:
 
 * A equação da nossa reta é dada por: 
 
-$$score = 3.88 + 0.06 \cdot bty\_avg$$. 
+$$score = 3.88 + 0.06 \cdot bty\_avg$$
 
 Isso significa que __para cada unidade que aumentamos *bty_avg*, o _score_ do professor aumenta apenas 0.06__.
 
-* __Há uma relação linear estatística significativa entre a avaliação do professor e sua beleza__, uma vez que o intervalo de confiança do slope (*bty_avg*) não intercepta o valor zero e seu $p\mbox{-}value < 0.05$
+* __Há uma relação linear estatísticamente significativa entre a avaliação do professor e sua beleza__, uma vez que o intervalo de confiança do slope (*bty_avg*) não intercepta o valor zero e seu $p\mbox{-}value < 0.05$
 
-* __Como ambos $R^2$ e $R^2\mbox{-}adjusted$ foram baixos (0.03502226 e 0.03292903, respectivamente), a relação linear entre a beleza e o score é muito fraca__ (como confirmado pelo coeficiente de correlação). Aproximadamente, __apenas 3,5% da variância na avaliação do professor é explicada pela média da avaliação da beleza__.
+* __Porém, como ambos $R^2$ e $R^2\mbox{-}adjusted$ foram baixos (0.03502226 e 0.03292903, respectivamente), a relação linear entre a beleza e o score é muito fraca__ (como confirmado pelo coeficiente de correlação). Aproximadamente, __apenas 3,5% da variância na avaliação do professor é explicada pela média da avaliação da beleza__.
 
 Temos agora que analisar o gráfico de resíduos e seu histograma para verificarmos as demais condições:
 
@@ -268,24 +269,24 @@ Analisando cada gráfico acima, temos:
 
 * __Residuals vs Fitted__: esse gráfico é igual ao gráfico de resíduos já discutido anteriormente.
 
-* __Normal Q-Q__: esse gráfico mostra se os resíduos são normalmente distribuídos. Como vimos anteriormente, nossos resíduos são concentrados à direita com cauda à esquerda.
+* __Normal Q-Q__: esse gráfico mostra se os resíduos são normalmente distribuídos. Como vimos anteriormente, nossos resíduos aparentemente são normais, mas com leve concentração à direita e cauda à esquerda.
 
-* __Scale-Location__: esse gráfico mostra se os resíduos espalham-se igualmente ao longo da faixa de preditores. Através desse gráfico podemos checar a homocedasticidade (suposição de variância constante para observações diferentes). A homocedasticidade é boa quando temos uma reta aproximadamente horizontal com os pontos igualmente espalhados ao longo da reta. Logo, apesar de termos uma reta aproximadamente horizonta eu acho que os pontos se espalham menos ao longo do gráfico.
+* __Scale-Location__: esse gráfico mostra se os resíduos espalham-se igualmente ao longo da faixa de preditores. Através desse gráfico podemos checar a homocedasticidade (suposição de variância constante para observações diferentes). A homocedasticidade é boa quando temos uma reta aproximadamente horizontal com os pontos igualmente espalhados ao longo da reta. Logo, apesar de termos uma reta aproximadamente horizontal, eu acho que os pontos se espalham menos ao longo do gráfico.
 
-* __Residuals vs Leverage__: esse gráfico ajuda olhar pontos que influenciam nossa regressão significantemente (como outliers). Esses pontos são representados nesse gráfico extremamente distantes dos demais pontos - em geral nos cantos superior/inferior direito. Portanto, nosso gráfico mostra que não há pontos que se distanciam em demasia aos demais. De fato, não há outliers nos dados, como vimos na análise descritiva. 
+* __Residuals vs Leverage__: esse gráfico ajuda olhar pontos que influenciam nossa regressão significantemente (como outliers). Esses pontos são representados nesse gráfico extremamente distantes dos demais pontos - em geral nos cantos superior/inferior direito. Portanto, nosso gráfico mostra que não há pontos que se distanciam em demasia dos demais. De fato, não há outliers nos dados, como vimos na análise descritiva. 
 
 ### 3.2 Regressão Linear Múltipla
 
-Antes de ajustar o modelo da regressão para múltiplas variáveis, eu acredito que algumas variáveis serão mais importantes que outras, são elas: 
+Como o objetivo de um modelo de regressão linear é simplificar a compreensão de alguma entidade, não faz muito sentido utilizarmos as 21 variáveis para tentar predizer o score de um professor. Portanto, além da média da beleza (*bty_avg*), vou escolher algumas variáveis que acredito inicialmente que serão mais significantes que outras. Baseado na análise descritiva, eu escolheria as seguintes variáveis:
 
-* **_age_**: de certa forma, professores mais experientes tem melhor didática.
-* **_rank_**: idem.
-* **_cls\_level_**: acredito que disciplinas introdutórias são mais fáceis de ministrar (pelo professor) e compreender (pelo aluno). Logo, os alunos devem tender a dar notas mais altas aos professores das disciplinas que eles aprendem mais fácil.
+* **_age_**: de certa forma, acredito que professores mais experientes têm melhor didática.
+* **_cls\_level_** e **cls_credits**: acredito que disciplinas introdutórias (ou de poucos créditos) são mais fáceis de ministrar (pelo professor) e compreender (pelos alunos). Logo, os alunos devem tender a dar notas mais altas aos professores das disciplinas que eles aprendem mais fácil.
+* **pic_outfit** e **pic_color**: escolhi essas variáveis pelo desbalanceamento delas nos dados, como vimos na análise descritiva. Quero analisar como isso influencia o nosso modelo. Também quero balancear o número de variáveis não relacionadas a beleza (_age_, *cls_level* e *cls_credits*) com as relacionadas (*bty_avg* + essas duas).
 
 Vamos, então, ver se algum palpite meu está certo:
 
 ```{r}
-multi <- lm(data = dados, score ~ . )
+multi <- lm(data = dados, score ~ age + cls_level + cls_credits + pic_outfit + pic_color + bty_avg)
 
 summary(multi)
 tidy(multi, conf.int = TRUE) %>% kable()
@@ -294,9 +295,18 @@ glance(multi, conf.int = TRUE) %>% kable()
 
 Pelos dados acima, agora temos que:
 
-* **as variáveis _bty\_\*_ representam as variáveis mais importantes agora, pois apresentam os maiores coeficientes de _estimate_**. É interessante notar, no entanto, que a soma das avaliações da beleza é bem próxima do negativo da média (*bty_avg*), ou seja, de certa forma elas se anulam. **Além disso, todas as variáveis de beleza (_bty\_\*_) não são estatísticamente significantes, já que o intervalo de confiança cruza o valor zero**.
-* As variáveis estatísticamente significantes (que não cruzam o valor zero e com $p\mbox{-}value < 0.05$) são: _ranktenure track_, _gendermale_, _languagenon-english_, _age_, *cls_creditsone credit*, *pic_colorcolor*. Vale salientar que praticamente todas as variáveis estatísticamente significantes são categóricas, com exceção da idade (_age_).
-* O valor de $R^2$ e $R^2\mbox{-}adjusted$ foram maiores que quando a regressão linear simples foi aplicada, o que era esperado, pois é mais fácil ajustar um modelo com mais variáveis. No entanto, esse valor ainda é baixo. Aproximadamente, __apenas 20% da variância da avaliação do professor é explicada pelo modelo que construimos__.
+* a nossa nova equação da reta é:
+
+$$
+score = -0.003\cdot age + 0.019\cdot cls\_level_{upper} + 0.53\cdot cls\_credits_{one\_credit} +
+\\ - 0.062\cdot pic\_outfit_{not\_formal} - 0.173\cdot pic\_color_{color} + 0.05\cdot bty\_avg
+$$
+
+Ao contrário do que eu imaginava, __a idade tem efeito negativo na regressão do score__. Ou seja, quanto maior a idade, menor o valor do _score_. Além disso, __as fotos dos professores também influenciam negativamente__. Porém, __a quantidade de créditos de uma disciplina (no caso, um crédito) foi bastante importante, apresentando o maior peso individualmente entre as variáveis (0.53)__.
+
+* As variáveis estatísticamente significantes (que não cruzam o valor zero e com $p\mbox{-}value < 0.05$) são: $cls\_credits_{one\_credit}$, $pic\_color_{color}$ e $bty\_avg$. Vale salientar que metade das nossas variáveis foram significantes estatisticamente e apenas *bty_avg* é uma variável numérica.
+
+* O valor de $R^2$ e $R^2\mbox{-}adjusted$ foram maiores que quando a regressão linear simples foi aplicada, o que era esperado, pois é mais fácil ajustar um modelo com mais variáveis. No entanto, esse valor ainda é baixo (0.10006337). Aproximadamente, __apenas 10% da variância da avaliação do professor é explicada pelo modelo que construimos__.
 
 Vamos fazer agora as análises dos resíduos para cada uma das variáveis mais significantes:
 
@@ -312,19 +322,20 @@ residPlot <- function(data, x, y)
 
 dados_resid <- dados %>% add_residuals(multi)
 
-p1 <- residPlot(dados_resid, "rank", "resid")
-p2 <- residPlot(dados_resid, "gender", "resid")
-p3 <- residPlot(dados_resid, "language", "resid")
-p4 <- residPlot(dados_resid, "age", "resid")
-p5 <- residPlot(dados_resid, "cls_credits", "resid")
-p6 <- residPlot(dados_resid, "pic_color", "resid")
+p1 <- residPlot(dados_resid, "cls_credits", "resid")
+p2 <- residPlot(dados_resid, "pic_color", "resid")
+p3 <- residPlot(dados_resid, "bty_avg", "resid")
 
-multiplot(p1, p2, p3, p4, p5, p6, cols = 3)
+multiplot(p1, p2, p3, layout = matrix(c(1,2,3,3), nrow=2, byrow = TRUE))
 ```
 
-Em relação aos resíduos das variáveis categóricas, em geral eles são bem parecidos. Em alguns casos, como _language_ e *cls_credits*, a faixa dos resíduos para um dos valores é maior que no outro. Talvez isso seja explicado pelo desbalanceamento dos dados para cada valor. Ainda, grande parte dos resíduos se concentram entre [-1,1], ou seja, o modelo erra a nota um ponto para mais ou para menos. Por outro lado, eu observo um comportamento semelhante ao que tivemos na regressão linear para a variável _age_: a variância dos resíduos aparenta ser constante ao longo do gráfico e a distribuição dos pontos é parecida.
+Em relação aos resíduos das variáveis categóricas, em geral eles são bem parecidos. No caso de *pic_color* e *cls_credits*, a faixa dos resíduos para um dos valores é maior que no outro. Talvez isso seja explicado pelo desbalanceamento dos dados para cada valor. Ainda, __grande parte dos resíduos se concentram entre [-1,1], ou seja, o modelo erra a nota, em geral, um ponto para mais ou para menos__. Por outro lado, eu observo um comportamento semelhante ao que tivemos na regressão linear para a variável *bty_avg*: __a variância dos resíduos aparenta ser constante ao longo do gráfico e a distribuição dos pontos é parecida, porém agora os resíduos se concentram mais no começo do gráfico__.
 
-```{r}
+Também é importante notar que, no caso das variáveis categóricas, podemos observar que o modelo deu pesos altos e positivos para as variáveis com pouca variação nos resíduos ($cls\_credits_{one\_credit}$) e pesos negativos e menores para variáveis com maior variação nos resíduos ($pic\_color_{color}$). Não sei se isso é realmente um padrão, mas é ao menos um fato interessante.
+
+Vamos analisar agora o comportamente dos resíduos:
+
+```{r, fig.align="center"}
 dados_resid %>%
   ggplot(aes(x = resid)) +
   geom_histogram(bins = 30) +
@@ -334,27 +345,31 @@ dados_resid %>%
   xlab("Resíduos")
 ```
 
-
 ```{r, fig.align="center"}
 autoplot(multi)
 ```
 
 De acordo com o gráfico acima, temos:
 
-* __Residuals vs Fitted__: nosso gráfico de resíduos agora mostra um comportamento semelhante de quando efetuamos somente a regressão linear simples. A nossa reta ainda é aproximadamente horizontal e não há padrões não-lineares, apesar dos resíduos variarem mais em certa faixa de valores.
+* __Residuals vs Fitted__: nosso gráfico de resíduos agora mostra um comportamento diferente de quando efetuamos somente a regressão linear simples. __A nossa reta ainda é aproximadamente horizontal, porém há padrões não-lineares e os resíduos variam diferentemente ao longo do gráfico__.
 
-* __Normal Q-Q__: esse gráfico confirma que nossos resíduos são normalmente distribuidos.
+* __Normal Q-Q__: esse gráfico confirma que __nossos resíduos são normalmente distribuidos__.
 
-* __Scale-Location__: novamente, temos uma reta aproximadamente horizontal com os ruídos se espalhando mais e menos ao longo do gráfico.
+* __Scale-Location__: agora, temos uma reta menos horizontal que na regressão simples e com os ruídos se espalhando diferentemente ao longo do gráfico. __A condição de variabilidade constante (homocedasticidade) é quebrada nesse caso__.
 
-* __Residuals vs Leverage__: como vimos anteriormente, esse gráfico confirma que não há outliers nos dados que influeciem significantemente nossa regressão.
+* __Residuals vs Leverage__: como vimos anteriormente, esse gráfico confirma que __não há outliers nos dados que influenciem significantemente nossa regressão__.
 
 # 4. Conclusões
 
-* Na regressão linear simples, nosso modelo foi estatísticamente significante (o intervalo de confiança do slope não interceptou zero e o $p\mbox{-}value < 0.05$), porém não foi útil para explicar os nossos dados - uma vez que nosso $R^2 = 0.035$. Além disso, algumas suposições de regressão foram violadas, como a linearidade. Os ruídos, por sua vez, não apresentam nenhum padrão aparente, foram normalmente distribuídos, boa homocedasticidade e nenhum outlier.
+* **Na regressão linear simples, nosso modelo foi estatísticamente significante** (o intervalo de confiança do slope não interceptou zero e o $p\mbox{-}value < 0.05$), **porém não foi útil para explicar os nossos dados** - uma vez que nosso $R^2 = 0.035$. Além disso, **algumas suposições de regressão foram violadas**, como a linearidade. **Os ruídos, por sua vez, não apresentam nenhum padrão aparente, foram normalmente distribuídos, boa homocedasticidade e nenhum outlier**.
 
-* Na regressão multilinear, a variância explicada pelo nosso modelo foi maior que no caso da regressão linear simples, porém ainda de baixa utilidade prática. Apenas 6 variáveis foram estatísticamente significantes, sendo 5 categóricas e 1 numérica. Os ruídos se comportaram de maneira similar, porém com variação inconstante ao longo do gráfico.
+* Na regressão multilinear, **a variância explicada pelo nosso modelo foi maior que no caso da regressão linear simples, porém ainda de baixa utilidade prática**. **Apenas 3 das 6 variáveis foram estatísticamente significantes**, sendo 2 categóricas e 1 numérica. **Os ruídos também se mostraram normalmente distribuídos e sem a presença de outliers, porém com variação inconstante ao longo do gráfico e padrões não-lineares**.
+
+* Em relação a avaliação da beleza como fator significativo na avaliação docente, vimos que __a beleza teve um efeito estatísticamente significativo em ambas as regressões, mas não explicou a variância do score__. Portanto, eu afirmaria que **a beleza não apresentou um efeito significativo no _score_ dos professores tanto quando avaliada individualmente (regressão linear) quando em conjunto com outras variáveis (regressão multilinear)**.
 
 # 5. Links Úteis
 
-* http://rpubs.com/sinhrks/plot_lm
+* Fluxograma de como aplicar uma regressão linear: http://www.discoveringstatistics.com/docs/linearmodels.pdf
+* Visualização do modelo: http://r4ds.had.co.nz/model.html#understanding-the-model
+* Explicação do autoplot: http://data.library.virginia.edu/diagnostic-plots/
+* Explicação do summary: http://blog.yhat.com/posts/r-lm-summary.html
