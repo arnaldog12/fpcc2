@@ -14,13 +14,17 @@ knitr::opts_chunk$set(echo = TRUE)
 1. Que fatores nos dados têm efeito significativo na chance do casal ter um match? E como é esse efeito (positivo/negativo)?
 2. Que fatores nos dados têm mais efeito na chance de um casal ter match?
 
+Lembre de fazer um descritivo das variáveis antes, e de escrever o relatório de maneira que alguém que saiba sobre regressão mas não sabe nada sobre os dados entenda. Ao apresentar cada modelo, lembre de intepretar a significância, a significância e a magnitude dos coeficientes e de interpretar o fit.
+
 # 0. Imports and Settings
-```{r}
+```{r, message=FALSE}
 library(broom)
+library(caret)
 library(dplyr, warn.conflicts = FALSE)
 library(GGally, warn.conflicts = FALSE)
 library(ggplot2)
 library(knitr)
+library(ROCR)
 library(readr)
 
 source('multiplot.R')
@@ -122,8 +126,51 @@ multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
 # 2. Regressão Logística
 
 ```{r}
+mod <- glm(dec ~ ., data = dados, family = "binomial")
 
+summary(mod)
+```
+
+Pelo sumário acima, podemos ver que as variáveis estatísticamentes significantes são: attr, sinc, fun, amb, shar, like e prob - uma vez que os intervalos de confiança não interceptam zero (nota: os coeficientes acima não são exponenciados). Entre essas variáveis, a que apresenta o maior coeficiente é __like__ (0.61). Isso significa que, aumentando __like__ em uma unidade, e mantendo as demais constantes, o log de odds ratio aumenta em 0.61. Como o log de odds é difícil de interpretar, em geral, exponenciamos esses coeficientes:
+
+```{r}
+tidy(mod, conf.int = TRUE) # == summary
+tidy(mod, conf.int = TRUE, exponentiate = TRUE)
+```
+
+Agora, podemos ver que aumentando __like__ por uma unidade, a chance de ocorrer um matching aumenta 84,8%. Por outro lado, a chance de ocorrer matching entre participantes que consideraram a outra pessoa inteligente é 5% menor a cada ponto de inteligência a mais.
+
+__Importante__: a exponenciação dos expoentes altera a avaliação do intervalo de confiança. Na regressão linear, para uma variável ser considerada estatísticamente significante, o seu intervalo de confiança não pode interceptar zero (com exceção do intercept, que tanto faz). Na regressão logística, por sua vez, quando exponenciamos os coeficientes, o intervalo de confiança não pode interceptar 1. Pois, quando o CI é maior que 1, significa que o odds ratio aumenta à medida que se aumenta a variável independente. De modo análogo, quando o CI é menor que 1, o odds ratio diminui com o aumento da variável independente. Portanto, quando o CI intercepta o valor 1, não podemos afirmar o efeito da variável independente sobre o odds ratio.
+
+__Observação__: Também é importante notar que quando o coeficiente (não exponenciado) é negativo, o coeficiente exponenciado é sempre menor que 1. Por outro lado, quando o coefieciente é positivo, o coeficiente exponenciado é sempre maior que 1. Esse comportamente, obviamente, deve-se a fórmula da regressão logística (sigmoid):
+
+$$\sigma(x) = \frac{1}{1+e^{-x}}$$
+
+No entanto, o sinal do coeficiente (não exponenciado) ou seu valor (exponenciado) diz fatos interessantes sobre as variáveis. Quando o coeficiente (não exponenciado) é negativo (ou menor que 1 ao exponenciar), significa que a variável em questão contribui negativamente em relação a variável dependente (resposta). Por exemplo, levando em consideração a variável _sinc_ (estatísticamente significante), quanto mais sincero a pessoa é, menor a chance de ocorrer o matching - aproximadamente 20% menor a cada ponto a mais de sinceridade (quando todas as outras variáveis se mantém constante). 
+
+```{r}
+teste <- with(dados, data.frame(order=mean(order), int_corr=mean(int_corr), age=mean(age), age_o=mean(age_o), attr=mean(attr), sinc=mean(sinc), intel=mean(intel), fun=mean(fun), amb=mean(amb), shar=mean(shar), prob=mean(prob), like = c(5:10)))
+teste$pred <- predict(mod, teste, type = "response")
+teste
 ```
 
 
+```{r}
+teste <- dados
+teste$pred <- predict(mod, teste, type = "response") # teste$pred contém a probabilidade P(y="yes"|x)
+teste$result <- ifelse(teste$pred > 0.5, "yes", "no")
+confusionMatrix(dados$dec, teste$result, positive = "yes")
+```
+
+Apesar da taxa de acerto ser baixa (77,03%), a nossa regressão logística é boa em prever os casos de não matching (81,12%).
+
+```{r}
+pr <- prediction(teste$pred, teste$dec)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+```
 
