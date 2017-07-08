@@ -1,0 +1,129 @@
+---
+title: "Lab 5 - Checkpoint 4"
+author: "Arnaldo Gualberto"
+date: "05/07/2017"
+output: 
+  html_document:
+    smart: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+1. Que fatores nos dados têm efeito significativo na chance do casal ter um match? E como é esse efeito (positivo/negativo)?
+2. Que fatores nos dados têm mais efeito na chance de um casal ter match?
+
+# 0. Imports and Settings
+```{r}
+library(broom)
+library(dplyr, warn.conflicts = FALSE)
+library(GGally, warn.conflicts = FALSE)
+library(ggplot2)
+library(knitr)
+library(readr)
+
+source('multiplot.R')
+
+# Coloca todos os titulos dos gráficos centralizados
+theme_update(plot.title = element_text(hjust=0.5))
+```
+
+# 1. Análise Descritiva
+
+```{r}
+dados <- read_csv('data/speed-dating2.csv') %>% 
+  select(order, int_corr, age, age_o, attr, sinc, intel, fun, amb, shar, like, prob, dec) %>% 
+  mutate(dec = factor(dec)) %>% 
+  filter(complete.cases(.))
+```
+
+```{r}
+summary(dados)
+```
+
+```{r, fig.width=12}
+barPlot <- function(data, column)
+{
+  plot <- data %>%
+    ggplot(aes_string(x = column)) +
+    geom_bar()
+  return(plot)
+}
+
+p1 <- barPlot(dados, "order")
+p2 <- barPlot(dados, "int_corr")
+p3 <- barPlot(dados, "age")
+p4 <- barPlot(dados, "age_o")
+p5 <- barPlot(dados, "attr")
+p6 <- barPlot(dados, "sinc")
+p7 <- barPlot(dados, "intel")
+p8 <- barPlot(dados, "fun")
+p9 <- barPlot(dados, "amb")
+p10 <- barPlot(dados, "shar")
+p11 <- barPlot(dados, "like")
+p12 <- barPlot(dados, "prob")
+
+multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
+```
+
+```{r, fig.width=12}
+scatterPlot <- function(data, col1, col2)
+{
+  plot <- data %>%
+    ggplot(aes_string(x = col1, y = col2, colour = col2)) +
+    geom_point(alpha=0.3) +
+    theme(legend.position = "none")
+  return(plot)
+}
+
+p1 <- scatterPlot(dados, "order", "dec")
+p2 <- scatterPlot(dados, "int_corr", "dec")
+p3 <- scatterPlot(dados, "age", "dec")
+p4 <- scatterPlot(dados, "age_o", "dec")
+p5 <- scatterPlot(dados, "attr", "dec")
+p6 <- scatterPlot(dados, "sinc", "dec")
+p7 <- scatterPlot(dados, "intel", "dec")
+p8 <- scatterPlot(dados, "fun", "dec")
+p9 <- scatterPlot(dados, "amb", "dec")
+p10 <- scatterPlot(dados, "shar", "dec")
+p11 <- scatterPlot(dados, "like", "dec")
+p12 <- scatterPlot(dados, "prob", "dec")
+
+multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
+```
+
+```{r, fig.width=12}
+boxPlot <- function(data, col1, col2)
+{
+  plot <- data %>%
+    ggplot(aes_string(x = col2, y = col1, fill = col2)) +
+    geom_boxplot() +
+    theme(legend.position = "none")
+  return(plot)
+}
+
+p1 <- boxPlot(dados, "order", "dec")
+p2 <- boxPlot(dados, "int_corr", "dec")
+p3 <- boxPlot(dados, "age", "dec")
+p4 <- boxPlot(dados, "age_o", "dec")
+p5 <- boxPlot(dados, "attr", "dec")
+p6 <- boxPlot(dados, "sinc", "dec")
+p7 <- boxPlot(dados, "intel", "dec")
+p8 <- boxPlot(dados, "fun", "dec")
+p9 <- boxPlot(dados, "amb", "dec")
+p10 <- boxPlot(dados, "shar", "dec")
+p11 <- boxPlot(dados, "like", "dec")
+p12 <- boxPlot(dados, "prob", "dec")
+
+multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
+```
+
+# 2. Regressão Logística
+
+```{r}
+
+```
+
+
+
