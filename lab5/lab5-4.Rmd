@@ -11,6 +11,8 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+No checkpoint 4 do Lab 5, vamos analisar dados sobre _speed dating_ (encontro rápido), que é um evento no qual participantes que nunca se viram antes conversam entre si, ao pares e de forma rápida, para conhecer novas pessoas. Ao final desses encontros, os participantes avaliam cada pessoa que eles conversaram e decidem se gostariam de conversar novamente com algum outro participante. Portanto, o objetivo desse checkpoint é analisar esses dados e responder as duas seguintes perguntas:
+
 1. Que fatores nos dados têm efeito significativo na chance do casal ter um match? E como é esse efeito (positivo/negativo)?
 2. Que fatores nos dados têm mais efeito na chance de um casal ter match?
 
@@ -35,29 +37,54 @@ theme_update(plot.title = element_text(hjust=0.5))
 
 # 1. Análise Descritiva
 
-```{r}
+Antes de efetuar a regressão logística, vamos efetuar uma análise descritiva para conhecer melhor nossos dados. Primeiramente, vou carregar os nossos dados e selecionar as variáveis que eu acredito que serão relevantes para a nossa análise:
+
+```{r, message=FALSE}
 dados <- read_csv('data/speed-dating2.csv') %>% 
   select(order, int_corr, age, age_o, attr, sinc, intel, fun, amb, shar, like, prob, dec) %>% 
   mutate(dec = factor(dec)) %>% 
   filter(complete.cases(.))
 ```
 
+Ao todo, selecionei 13 variáveis, são elas:
+
+* **order**: dos vários encontros realizados em uma noite por um participante, essa variável representa o n-ésimo
+* **int_corr**: correlação entre os interesses de p1 e p2 (primeiro e segundo participante, respectivamente)
+* **age**: idade de p1
+* **age_o**: idade de p2
+* **attr**: quão atraente p1 achou p2
+* **sinc**: quão sincero p1 achou p2
+* **intel**: quão inteligente p1 achou p2
+* **fun**: quão divertido p1 achou p2
+* **amb**: quão ambicioso p1 achou p2
+* **shar**: quanto p1 achou que compartilha interesses e hobbies com p2
+* **like**: no geral, quanto p1 gostou de p2?
+* **prob**: que probabiliade p1 acha que p2 tem de querer se encontrar novamente com p1 (escala 1-10)
+* **dec**: indica se houve o _match_ entre os participantes do encontro
+
+Agora, que conhecemos nossas variáveis, vamos analisar o sumário de cada uma delas:
+
 ```{r}
 summary(dados)
 ```
+
+Pelo sumário, podemos ver que nenhuma delas aparenta apresentar nenhum outlier aparente. Além disso, podemos ver que tivemos 1699 matchings.
+
+Vamos agora analisar a distribuição de cada uma das nossas variáveis independentes:
 
 ```{r, fig.width=12}
 barPlot <- function(data, column)
 {
   plot <- data %>%
     ggplot(aes_string(x = column)) +
-    geom_bar()
+    geom_bar() +
+    geom_vline(xintercept = mean(data[[column]]), color="yellow")
   return(plot)
 }
 
 p1 <- barPlot(dados, "order")
 p2 <- barPlot(dados, "int_corr")
-p3 <- barPlot(dados, "age")
+p3 <- barPlot(dados, "age") 
 p4 <- barPlot(dados, "age_o")
 p5 <- barPlot(dados, "attr")
 p6 <- barPlot(dados, "sinc")
@@ -71,31 +98,41 @@ p12 <- barPlot(dados, "prob")
 multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
 ```
 
+De acordo com os gráficos, acima, pode-se ver que a maioria das variáveis aparentam ter uma distribuição normal, com exceção da variável _order_. Nesse caso, a maioria dos participantes participam, em média, de aproximadamente 10 encontros em uma noite, enquanto alguns fazem mais de 20. Além disso, analisando a média das distribuições (linha amarela) podemos citar algumas informações interessantes sobre o perfil deles. Na média, temos participantes jovens com aproximadamente 25 anos, não tão sinceros (_sinc_) nem inteligentes (_intel_), interesses diferentes (_shar_), e indecisos (já que a probabilidade de querer se encontrar novamente, _prob_, é 50%).
+
+Vamos analisar esses mesmos gráficos quando comparamos os casos que deram _match_ com os casos que não deram:
+
 ```{r, fig.width=12}
-scatterPlot <- function(data, col1, col2)
+barPlotMatch <- function(data, col1, col2)
 {
   plot <- data %>%
-    ggplot(aes_string(x = col1, y = col2, colour = col2)) +
-    geom_point(alpha=0.3) +
+    ggplot(aes_string(x = col1, fill=col2)) +
+    geom_bar(position = "stack") +
     theme(legend.position = "none")
   return(plot)
 }
 
-p1 <- scatterPlot(dados, "order", "dec")
-p2 <- scatterPlot(dados, "int_corr", "dec")
-p3 <- scatterPlot(dados, "age", "dec")
-p4 <- scatterPlot(dados, "age_o", "dec")
-p5 <- scatterPlot(dados, "attr", "dec")
-p6 <- scatterPlot(dados, "sinc", "dec")
-p7 <- scatterPlot(dados, "intel", "dec")
-p8 <- scatterPlot(dados, "fun", "dec")
-p9 <- scatterPlot(dados, "amb", "dec")
-p10 <- scatterPlot(dados, "shar", "dec")
-p11 <- scatterPlot(dados, "like", "dec")
-p12 <- scatterPlot(dados, "prob", "dec")
+p1 <-barPlotMatch(dados, "order", "dec")
+p2 <-barPlotMatch(dados, "int_corr", "dec")
+p3 <-barPlotMatch(dados, "age", "dec")
+p4 <-barPlotMatch(dados, "age_o", "dec")
+p5 <-barPlotMatch(dados, "attr", "dec")
+p6 <-barPlotMatch(dados, "sinc", "dec")
+p7 <-barPlotMatch(dados, "intel", "dec")
+p8 <-barPlotMatch(dados, "fun", "dec")
+p9 <-barPlotMatch(dados, "amb", "dec")
+p10 <-barPlotMatch(dados, "shar", "dec")
+p11 <-barPlotMatch(dados, "like", "dec")
+p12 <-barPlotMatch(dados, "prob", "dec")
 
 multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
 ```
+
+__Nota__: repare que os gráficos de _sinc_ e _amb_ não puderam ser empilhados.
+
+Os gráficos acima nos mostram agora que algums fatores não importam tanto para o _match_ ou não, como é o caso de _order_, *int_corr*, e *age*, por exemplo. No entanto, podemos ver que _attr_, _like_, _shar_ e _fun_ são fatores decisivos para se conseguir um matching. Ou seja, se p1 acha p2 atraente, divertido, compartilha os mesmos interesses e hobbies, e gosta dele, a chance de matching são mais altas. Também é interessante notar que houveram casos em que um participante informou que a probabilidade de querer se encontrar novamente com o participante era 10, mas mesmo assim decidiu não fazê-lo.
+
+Vamos agora analisar a distribuição de cada variávem em relação a _dec_ usando boxplots: 
 
 ```{r, fig.width=12}
 boxPlot <- function(data, col1, col2)
@@ -123,7 +160,43 @@ p12 <- boxPlot(dados, "prob", "dec")
 multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
 ```
 
+Pelos boxplots acima, podemos observar que a médiana dos matchs (*_dec_ = "yes"*) é maior para praticamente todas as variáveis, com exceção de _order_, *int_corr*, _age_ e *age_o*. As distância inter-quartis também são parecidas em geral. O gráfico de _sinc_ nos mostra que houveram algumas pessoas que deram match em p2, mesmo considerando p2 uma pessoa não sincera.
+
+Vamos analisar agora o gráfico que talvez será o mais importante para prever o resultado da regressão logística, plotando cada variável em relação a _dec_:
+
+```{r, fig.width=12}
+scatterPlot <- function(data, col1, col2)
+{
+  plot <- data %>%
+    ggplot(aes_string(x = col1, y = col2, colour = col2)) +
+    geom_point(alpha=0.3) +
+    theme(legend.position = "none")
+  return(plot)
+}
+
+p1 <- scatterPlot(dados, "order", "dec")
+p2 <- scatterPlot(dados, "int_corr", "dec")
+p3 <- scatterPlot(dados, "age", "dec")
+p4 <- scatterPlot(dados, "age_o", "dec")
+p5 <- scatterPlot(dados, "attr", "dec")
+p6 <- scatterPlot(dados, "sinc", "dec")
+p7 <- scatterPlot(dados, "intel", "dec")
+p8 <- scatterPlot(dados, "fun", "dec")
+p9 <- scatterPlot(dados, "amb", "dec")
+p10 <- scatterPlot(dados, "shar", "dec")
+p11 <- scatterPlot(dados, "like", "dec")
+p12 <- scatterPlot(dados, "prob", "dec")
+
+multiplot(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, cols = 3)
+```
+
+De acordos com os gráficos acima, eu arriscaria dizer as variáveis _intel_, _amb_ e _like_ seriam as variáveis mais importantes estatísticamente para o resultado da regressão logística, uma vez que a ocorrência de match (*_dec_ = "yes"*) em geral se concentra mais a direitá do que o caso contrário. Lembrando que isso é apenas intuição. Além disso, eu arriscaria dizer que *int_corr*, _order_, _age_, *age_o* não seriam estatísticamente significantes, uma vez que visualmente extremamente difícies de separar utilizando algum critério. Em relação as outras variáveis, eu não saberia dizer a significância estatística delas.
+
+Vamos, então, ver se algum palpite meu está correto.
+
 # 2. Regressão Logística
+
+Como dito anteriormente, o objetivo da nossa regressão logística é ver quais fatores são mais significativos e a importância desses fatores. Para isso, vamos começar ajustando nosso modelo: 
 
 ```{r}
 mod <- glm(dec ~ ., data = dados, family = "binomial")
@@ -131,22 +204,24 @@ mod <- glm(dec ~ ., data = dados, family = "binomial")
 summary(mod)
 ```
 
-Pelo sumário acima, podemos ver que as variáveis estatísticamentes significantes são: attr, sinc, fun, amb, shar, like e prob - uma vez que os intervalos de confiança não interceptam zero (nota: os coeficientes acima não são exponenciados). Entre essas variáveis, a que apresenta o maior coeficiente é __like__ (0.61). Isso significa que, aumentando __like__ em uma unidade, e mantendo as demais constantes, o log de odds ratio aumenta em 0.61. Como o log de odds é difícil de interpretar, em geral, exponenciamos esses coeficientes:
+Pelo sumário acima, podemos ver que as variáveis estatísticamentes significantes são: _attr_, _sinc_, _fun_, _amb_, _shar_, _like_ e _prob_ - uma vez que os intervalos de confiança não interceptam zero (nota: os coeficientes acima não estão exponenciados). **Em relação a essas variáveis, apenas _sinc_ e _amb_ apresentam efeito negativo, ou seja, quando a percepção de sinceridade ou ambianção que p1 tem sobre p2 aumenta, a chance de dar matching diminui. Todas as outras variáveis singificantes apresentam efeito positivo. Entre essas variáveis, a que apresenta o maior coeficiente é __like__ (0.61), seguida por _attr_ (0.43)**. Isso significa que, aumentando __like__ em uma unidade, e mantendo as demais constantes, o log de _odds ratio_ aumenta em 0.61. 
+
+Lembrando que _odds ratio (OR)_ é a chance de um evento ocorrer sobre a chance do evento não ocorrer $\frac{p}{1-p}$, também chamada de __razão de chances__ ou __razão de possibilidades__. Uma OR = 1 significa que a condição do evento ocorrer é igualmente provável a chance de não ocorrer. Logo, quando OR > 1, a chance do evento ocorrer é maior que não ocorrer. Por outro lado, quando OR < 1, a probabilidade do evento ocorrer é menor.
+
+Como o log de odds é difícil de interpretar, em geral, exponenciamos esses coeficientes:
 
 ```{r}
 tidy(mod, conf.int = TRUE) # == summary
 tidy(mod, conf.int = TRUE, exponentiate = TRUE)
 ```
 
-Agora, podemos ver que aumentando __like__ por uma unidade, a chance de ocorrer um matching aumenta 84,8%. Por outro lado, a chance de ocorrer matching entre participantes que consideraram a outra pessoa inteligente é 5% menor a cada ponto de inteligência a mais.
+Agora, podemos ver que aumentando __like__ por uma unidade, a chance de ocorrer um matching aumenta 84,8%. Por outro lado, a chance de ocorrer matching entre participantes que consideraram a outra pessoa sincera é 20,7% menor a cada ponto de sinceridade a mais (mantendo fixa as demais variáveis).
 
 __Importante__: a exponenciação dos expoentes altera a avaliação do intervalo de confiança. Na regressão linear, para uma variável ser considerada estatísticamente significante, o seu intervalo de confiança não pode interceptar zero (com exceção do intercept, que tanto faz). Na regressão logística, por sua vez, quando exponenciamos os coeficientes, o intervalo de confiança não pode interceptar 1. Pois, quando o CI é maior que 1, significa que o odds ratio aumenta à medida que se aumenta a variável independente. De modo análogo, quando o CI é menor que 1, o odds ratio diminui com o aumento da variável independente. Portanto, quando o CI intercepta o valor 1, não podemos afirmar o efeito da variável independente sobre o odds ratio.
 
-__Observação__: Também é importante notar que quando o coeficiente (não exponenciado) é negativo, o coeficiente exponenciado é sempre menor que 1. Por outro lado, quando o coefieciente é positivo, o coeficiente exponenciado é sempre maior que 1. Esse comportamente, obviamente, deve-se a fórmula da regressão logística (sigmoid):
+__Observação__: Também é importante notar que quando o coeficiente (não exponenciado) é negativo, o coeficiente exponenciado é sempre menor que 1. Por outro lado, quando o coefieciente é positivo, o coeficiente exponenciado é sempre maior que 1. No entanto, o sinal do coeficiente (não exponenciado) ou seu valor (exponenciado) diz fatos interessantes sobre as variáveis. Quando o coeficiente (não exponenciado) é negativo (ou menor que 1 ao exponenciar), significa que a variável em questão contribui negativamente em relação a variável dependente (resposta). Por exemplo, como visto anteriormente, levando em consideração a variável _sinc_ (estatísticamente significante), quanto mais sincero a pessoa é, menor a chance de ocorrer o matching - aproximadamente 20,7% menor a cada ponto a mais de sinceridade (quando todas as outras variáveis se mantém constante). 
 
-$$\sigma(x) = \frac{1}{1+e^{-x}}$$
-
-No entanto, o sinal do coeficiente (não exponenciado) ou seu valor (exponenciado) diz fatos interessantes sobre as variáveis. Quando o coeficiente (não exponenciado) é negativo (ou menor que 1 ao exponenciar), significa que a variável em questão contribui negativamente em relação a variável dependente (resposta). Por exemplo, levando em consideração a variável _sinc_ (estatísticamente significante), quanto mais sincero a pessoa é, menor a chance de ocorrer o matching - aproximadamente 20% menor a cada ponto a mais de sinceridade (quando todas as outras variáveis se mantém constante). 
+Vamos, então, analisar os efeitos de _like_ e _sinc_ quanto todas as variáveis se mantém fixas e iguais as suas respectivas médias:
 
 ```{r}
 teste <- with(dados, data.frame(order=mean(order), int_corr=mean(int_corr), age=mean(age), age_o=mean(age_o), attr=mean(attr), sinc=mean(sinc), intel=mean(intel), fun=mean(fun), amb=mean(amb), shar=mean(shar), prob=mean(prob), like = c(5:10)))
@@ -154,6 +229,17 @@ teste$pred <- predict(mod, teste, type = "response")
 teste
 ```
 
+Pode-se observar que quando $like=5$, a chance de ocorrer um matching é aproximadamente 22,7%. Já quando $like=10$, essa probabilidade sobre para 86,3%.
+
+```{r}
+teste <- with(dados, data.frame(order=mean(order), int_corr=mean(int_corr), age=mean(age), age_o=mean(age_o), attr=mean(attr), intel=mean(intel), fun=mean(fun), amb=mean(amb), shar=mean(shar), prob=mean(prob), like=mean(like), sinc=c(5:10)))
+teste$pred <- predict(mod, teste, type = "response")
+teste
+```
+
+Por outro lado, quando p1 acha p2 extremamente sincero ($sinc =10$), a probabilidade de matching é apenas 21,9%. Porém, quando essa percepção de sinceridade diminui ($sinc=5$), a chance de matching sobre 47,1%. Será que mentir é uma boa opção ou as pessoas apenas gostam de ser fingir que estão sendo enganadas?
+
+Por fim, vamos analisar algumas métricas no nosso regressor logístico:
 
 ```{r}
 teste <- dados
@@ -162,9 +248,11 @@ teste$result <- ifelse(teste$pred > 0.5, "yes", "no")
 confusionMatrix(dados$dec, teste$result, positive = "yes")
 ```
 
-Apesar da taxa de acerto ser baixa (77,03%), a nossa regressão logística é boa em prever os casos de não matching (81,12%).
+O resultado acima nos mostra que apesar da taxa de acerto ser baixa (77,03%), a nossa regressão logística é boa em prever os casos de não matching (81,12%). Além disso, o intervalo de confiança para acurácia do nosso regressor é [75,7%, 78,3%].
 
-```{r}
+Finalmente, a curva ROC do nosso regressor pode ser vista abaixo:
+
+```{r, fig.align="center"}
 pr <- prediction(teste$pred, teste$dec)
 prf <- performance(pr, measure = "tpr", x.measure = "fpr")
 plot(prf)
@@ -174,3 +262,4 @@ auc <- auc@y.values[[1]]
 auc
 ```
 
+A área sob a curva (_Area Under Curve, AUC_) do nosso regressor é 85,8%. 
