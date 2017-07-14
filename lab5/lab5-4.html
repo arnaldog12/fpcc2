@@ -135,8 +135,9 @@ library(dplyr, warn.conflicts = FALSE)
 library(GGally, warn.conflicts = FALSE)
 library(ggplot2)
 library(knitr)
-library(ROCR)
+library(pscl)
 library(readr)
+library(ROCR)
 
 source('multiplot.R')
 
@@ -147,7 +148,7 @@ theme_update(plot.title = element_text(hjust=0.5))</code></pre>
 <h1>1. Análise Descritiva</h1>
 <p>Antes de efetuar a regressão logística, vamos efetuar uma análise descritiva para conhecer melhor nossos dados. Primeiramente, vou carregar os nossos dados e selecionar as variáveis que eu acredito que serão relevantes para a nossa análise:</p>
 <pre class="r"><code>dados &lt;- read_csv('data/speed-dating2.csv') %&gt;% 
-  select(order, int_corr, age, age_o, attr, sinc, intel, fun, amb, shar, like, prob, dec) %&gt;% 
+  dplyr::select(order, int_corr, age, age_o, attr, sinc, intel, fun, amb, shar, like, prob, dec) %&gt;% 
   mutate(dec = factor(dec)) %&gt;% 
   filter(complete.cases(.))</code></pre>
 <p>Ao todo, selecionei 13 variáveis, são elas:</p>
@@ -971,6 +972,12 @@ confusionMatrix(dados$dec, teste$result, positive = &quot;yes&quot;)</code></pre
 ##        'Positive' Class : yes            
 ## </code></pre>
 <p>O resultado acima nos mostra que <strong>apesar da taxa de acerto ser baixa (77.03%), a nossa regressão logística é boa em prever os casos de não matching (81.12%)</strong>. Além disso, o intervalo de confiança para acurácia do nosso regressor é [75.7%, 78.3%].</p>
+<pre class="r"><code>pR2(mod)</code></pre>
+<pre><code>##           llh       llhNull            G2      McFadden          r2ML 
+## -1845.6447462 -2723.2404589  1755.1914254     0.3222616     0.3556847 
+##          r2CU 
+##     0.4778360</code></pre>
+<p>Pelo coeficiente de McFadden, podemos ver que <strong>nosso modelo representa aproximadamente 33% da variância dos dados apenas</strong>. Lembrando que esse coeficiente é um <em>pseudo</em> <span class="math inline">\(R^2\)</span>.</p>
 <p>Finalmente, a curva ROC do nosso regressor pode ser vista abaixo:</p>
 <pre class="r"><code>pr &lt;- prediction(teste$pred, teste$dec)
 prf &lt;- performance(pr, measure = &quot;tpr&quot;, x.measure = &quot;fpr&quot;)
@@ -988,6 +995,7 @@ auc</code></pre>
 <li>As variáveis estatisticamente significantes para nossa regressão logística foram: <em>attr</em>, <em>sinc</em>, <em>fun</em>, <em>amb</em>, <em>shar</em>, <em>like</em> e <em>prob</em>. Dessas, apenas <em>amb</em> e <em>sinc</em> tiveram um efeito negativo, ou seja, o aumento delas influencia negativamente a chance de dar <em>match</em> (fixando as demais variáveis).</li>
 <li>A variável com maior efeito sobre o <em>match</em> foi <em>like</em>, com peso igual 0.61 (não exponenciado) e 1.84 (exponenciado). Isso significa que aumentando <em>like</em> em uma unidade, enquanto mantém-se fixa as demais variáveis, a chance de <em>match</em> aumenta em aproximadamente 84%.</li>
 <li>A <strong>acurácia do nosso regressor foi de 77.3%</strong> (CI = [75.7%, 78.3%]), enquanto <strong>a AUC = 85.8%</strong>.</li>
+<li>De acordo com o coeficiente de McFadden, o nosso modelo representou apenas 33% da variância dos dados.</li>
 <li>Finalmente, de acordo com o nosso regressor, se você quer se dar bem no próximo <em>speed dating</em>, além de ser atraente, procure por pessoas com interesses/hobbies em comum e seja divertido, mas não tão ambicioso nem sincero demais. ;D</li>
 </ul>
 </div>

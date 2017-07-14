@@ -25,8 +25,9 @@ library(dplyr, warn.conflicts = FALSE)
 library(GGally, warn.conflicts = FALSE)
 library(ggplot2)
 library(knitr)
-library(ROCR)
+library(pscl)
 library(readr)
+library(ROCR)
 
 source('multiplot.R')
 
@@ -40,7 +41,7 @@ Antes de efetuar a regressão logística, vamos efetuar uma análise descritiva 
 
 ```{r, message=FALSE}
 dados <- read_csv('data/speed-dating2.csv') %>% 
-  select(order, int_corr, age, age_o, attr, sinc, intel, fun, amb, shar, like, prob, dec) %>% 
+  dplyr::select(order, int_corr, age, age_o, attr, sinc, intel, fun, amb, shar, like, prob, dec) %>% 
   mutate(dec = factor(dec)) %>% 
   filter(complete.cases(.))
 ```
@@ -249,6 +250,12 @@ confusionMatrix(dados$dec, teste$result, positive = "yes")
 
 O resultado acima nos mostra que __apesar da taxa de acerto ser baixa (77.03%), a nossa regressão logística é boa em prever os casos de não matching (81.12%)__. Além disso, o intervalo de confiança para acurácia do nosso regressor é [75.7%, 78.3%].
 
+```{r}
+pR2(mod)
+```
+
+Pelo coeficiente de McFadden, podemos ver que __nosso modelo representa aproximadamente 33% da variância dos dados apenas__. Lembrando que esse coeficiente é um _pseudo_ $R^2$.
+
 Finalmente, a curva ROC do nosso regressor pode ser vista abaixo:
 
 ```{r, fig.align="center"}
@@ -268,4 +275,5 @@ A área sob a curva (_Área Under Curve, AUC_) do nosso regressor é 85.8%.
 * As variáveis estatisticamente significantes para nossa regressão logística foram: _attr_, _sinc_, _fun_, _amb_, _shar_, _like_ e _prob_. Dessas, apenas _amb_ e _sinc_ tiveram um efeito negativo, ou seja, o aumento delas influencia negativamente a chance de dar _match_ (fixando as demais variáveis).
 * A variável com maior efeito sobre o _match_ foi _like_, com peso igual 0.61 (não exponenciado) e 1.84 (exponenciado). Isso significa que aumentando _like_ em uma unidade, enquanto mantém-se fixa as demais variáveis, a chance de _match_ aumenta em aproximadamente 84%.
 * A __acurácia do nosso regressor foi de 77.3%__ (CI = [75.7%, 78.3%]), enquanto __a AUC = 85.8%__.
+* De acordo com o coeficiente de McFadden, o nosso modelo representou apenas 33% da variância dos dados.
 * Finalmente, de acordo com o nosso regressor, se você quer se dar bem no próximo _speed dating_, além de ser atraente, procure por pessoas com interesses/hobbies em comum e seja divertido, mas não tão ambicioso nem sincero demais. ;D
