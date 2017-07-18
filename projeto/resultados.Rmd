@@ -80,3 +80,21 @@ ci.scores
 ```
 
 Pode-se afirmar, então, com 95% de confiança, que a acurácia média da população está entre [0.9959, 0.9960].
+
+# 2. PCA
+
+Eu resolvi calcular os principais componentes no python, pois minhas amostras são HOG de imagens. Os dois principais componentes armazenam aproximadamente 29,7% da informação dos dados (variância explicada).
+
+```{r}
+dados_pca <- read_csv('pca.csv', col_names = c("pc1", "pc2", "label"))
+```
+
+```{r}
+dados_pca$label <- factor(dados_pca$label, labels = c("cores", "deltas", "neg"))
+
+dados_pca %>%
+  ggplot(aes(x = pc1, y = pc2, colour = label)) +
+  geom_point() +
+  ggtitle("PCA do HOG das imagens")
+```
+
